@@ -7,6 +7,7 @@ import { AppProviders } from "@/app/providers";
 import { routes } from "@/app/router";
 import type { AuthApi } from "@/services/auth";
 import type { StudentPortalApi } from "@/services/studentPortal";
+import type { TeacherWorkspaceApi } from "@/services/teacherWorkspace";
 import type { AuthSession } from "@/types/auth";
 
 const STUDENT_SESSION: AuthSession = {
@@ -97,6 +98,21 @@ function createStudentPortalApi(): StudentPortalApi {
   };
 }
 
+function createTeacherWorkspaceApi(): TeacherWorkspaceApi {
+  return {
+    getAssignments: vi.fn(async () => ({ assignments: [] })),
+    getStudents: vi.fn(),
+    getAttendance: vi.fn(),
+    saveAttendance: vi.fn(),
+    createActivity: vi.fn(),
+    publishActivity: vi.fn(),
+    getSubmissions: vi.fn(),
+    gradeSubmission: vi.fn(),
+    createAssessment: vi.fn(),
+    saveGrades: vi.fn(),
+  };
+}
+
 function renderAt(
   path: string,
   api: AuthApi = createApi(),
@@ -104,7 +120,11 @@ function renderAt(
 ) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   const result = render(
-    <AppProviders authApi={api} studentPortalApi={studentPortalApi}>
+    <AppProviders
+      authApi={api}
+      studentPortalApi={studentPortalApi}
+      teacherWorkspaceApi={createTeacherWorkspaceApi()}
+    >
       <RouterProvider router={router} />
     </AppProviders>,
   );
@@ -147,14 +167,14 @@ describe("application router", () => {
     const { router } = renderAt("/login", createApi(TEACHER_SESSION));
 
     await logIn(user, "andres.rodriguez@sigea.local");
-    await screen.findByRole("heading", { name: /espacio docente/i });
+    await screen.findByRole("heading", { name: /hola, andrés/i });
 
     await act(async () => {
       await router.navigate("/estudiante");
     });
 
     expect(router.state.location.pathname).toBe("/profesor");
-    expect(screen.getByRole("heading", { name: /espacio docente/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /hola, andrés/i })).toBeInTheDocument();
   });
 
   it("sends a student away from a teacher route to the student panel", async () => {

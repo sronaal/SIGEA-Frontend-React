@@ -2,8 +2,8 @@ import { Navigate, createBrowserRouter } from "react-router";
 import type { RouteObject } from "react-router";
 
 import { RequireRole } from "@/app/guards";
-import { PageHeader } from "@/components/ui";
 import LoginPage from "@/features/auth/LoginPage";
+import GradesPage from "@/features/grades/GradesPage";
 import {
   ActivityDetailPage,
   StudentActivitiesPage,
@@ -12,6 +12,12 @@ import {
   StudentProfilePage,
   StudentSubmissionsPage,
 } from "@/features/student/StudentPages";
+import { AttendancePage, TeacherDashboardPage } from "@/features/teacher/TeacherPages";
+import {
+  SubmissionsGradingPage,
+  TeacherActivitiesPage,
+  TeacherGroupsPage,
+} from "@/features/teacher/TeacherWorkspace";
 import AppLayout from "@/layouts/AppLayout";
 
 function NotFound() {
@@ -21,28 +27,6 @@ function NotFound() {
       <a href="/login">Volver al inicio de sesión</a>
       <a href="/acudientes">Volver al acceso de acudientes</a>
     </div>
-  );
-}
-
-/** Temporary landing of the teacher role; the real screens arrive in the next wave. */
-function TeacherHome() {
-  return (
-    <PageHeader
-      eyebrow="ESPACIO DOCENTE"
-      title="Espacio docente"
-      description="Aquí verás tus grupos, asignaturas y actividades."
-    />
-  );
-}
-
-/** Temporary screen for the teacher sections that the next wave replaces with the real pages. */
-function PendingScreen() {
-  return (
-    <PageHeader
-      eyebrow="PRÓXIMA ENTREGA"
-      title="Próximamente"
-      description="Esta sección se habilitará con las pantallas conectadas a la API."
-    />
   );
 }
 
@@ -82,8 +66,16 @@ export const routes: RouteObject[] = [
       {
         element: <AppLayout />,
         children: [
-          { path: "/profesor", Component: TeacherHome },
-          { path: "/profesor/*", Component: PendingScreen },
+          { path: "/profesor", Component: TeacherDashboardPage },
+          { path: "/profesor/grupos", Component: TeacherGroupsPage },
+          { path: "/profesor/asistencia", Component: AttendancePage },
+          { path: "/profesor/actividades", Component: TeacherActivitiesPage },
+          {
+            path: "/profesor/actividades/:activityId/entregas",
+            Component: SubmissionsGradingPage,
+          },
+          { path: "/profesor/calificaciones", Component: GradesPage },
+          { path: "/profesor/*", Component: NotFound },
         ],
       },
     ],

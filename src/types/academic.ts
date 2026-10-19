@@ -157,3 +157,157 @@ export interface SubmissionPayload {
   contenido?: string;
   archivoRef?: string;
 }
+
+/* ------------------------------------------------------------------------------------------------
+ * Teacher workspace (mirror of `com.sigea.teacherworkspace.dto`)
+ * ---------------------------------------------------------------------------------------------- */
+
+/** Publication state of an activity. */
+export type ActivityStatus = "BORRADOR" | "PUBLICADA";
+
+/** Level of a grade, used by the Spanish copy of the screens. */
+export type GradeLevel = "Bajo" | "Medio" | "Alto";
+
+/** Teaching assignment of the professor of the session. */
+export interface TeacherAssignment {
+  id: number;
+  subject: string;
+  grade: string;
+  group: string;
+  academicYear: number;
+  period: number | null;
+  studentCount: number;
+}
+
+/** Body of `GET /api/v1/teachers/me/assignments`. */
+export interface TeacherAssignments {
+  assignments: TeacherAssignment[];
+}
+
+/** Student enrolled in the group of an assignment, with the metrics of that assignment. */
+export interface TeacherStudent {
+  id: number;
+  nombres: string;
+  apellidos: string;
+  tipoDocumento: string;
+  numeroDocumento: string;
+  average: number | null;
+  averageStatus: AverageStatus;
+  attendancePercentage: number | null;
+}
+
+/** Assignment header of the student list. */
+export interface AssignmentSummary {
+  id: number;
+  subject: string;
+  grade: string;
+  group: string;
+  academicYear: number;
+}
+
+/** Body of `GET /api/v1/assignments/{id}/students`. */
+export interface AssignmentStudents {
+  assignment: AssignmentSummary;
+  students: TeacherStudent[];
+}
+
+/** Single attendance record of a session. */
+export interface TeacherAttendanceRecord {
+  studentId: number;
+  status: AttendanceStatus;
+}
+
+/** Body of `GET`/`POST /api/v1/assignments/{id}/attendance`. */
+export interface TeacherAttendance {
+  assignmentId: number;
+  date: string;
+  records: TeacherAttendanceRecord[];
+}
+
+/** Body of `POST /api/v1/assignments/{id}/attendance`. */
+export interface AttendancePayload {
+  date: string;
+  records: TeacherAttendanceRecord[];
+}
+
+/** Activity as the professor sees it. */
+export interface TeacherActivity {
+  id: number;
+  title: string;
+  description: string;
+  dueDate: string;
+  status: ActivityStatus;
+}
+
+/** Body of `POST /api/v1/assignments/{id}/activities`. */
+export interface ActivityPayload {
+  title: string;
+  description: string;
+  dueDate: string;
+  status: ActivityStatus;
+}
+
+/** Delivery of an activity as the professor sees it. */
+export interface TeacherSubmission {
+  id: number;
+  studentId: number;
+  studentName: string;
+  submittedAt: string;
+  content: string;
+  status: SubmissionStatus;
+  grade: number | null;
+  feedback: string | null;
+}
+
+/** Header of the deliveries list. */
+export interface ActivityHeader {
+  id: number;
+  title: string;
+  dueDate: string;
+}
+
+/** Body of `GET /api/v1/activities/{id}/submissions`. */
+export interface ActivitySubmissions {
+  activity: ActivityHeader;
+  submissions: TeacherSubmission[];
+}
+
+/** Body of `PATCH /api/v1/submissions/{id}/grade`. */
+export interface GradeSubmissionPayload {
+  grade: number;
+  feedback?: string;
+}
+
+/** Assessment as the professor sees it. */
+export interface TeacherAssessment {
+  id: number;
+  name: string;
+  weight: number;
+  period: number | null;
+  active: boolean;
+}
+
+/** Body of `POST /api/v1/assignments/{id}/assessments`. */
+export interface AssessmentPayload {
+  name: string;
+  weight: number;
+  period: number;
+}
+
+/** Persisted grade of one student in one assessment. */
+export interface AssessmentGrade {
+  id: number;
+  studentId: number;
+  grade: number;
+}
+
+/** Body of `POST /api/v1/assessments/{id}/grades`. */
+export interface GradeBatch {
+  assessmentId: number;
+  grades: AssessmentGrade[];
+}
+
+/** Body of `POST /api/v1/assessments/{id}/grades`. */
+export interface GradeBatchPayload {
+  records: Array<{ studentId: number; grade: number }>;
+}

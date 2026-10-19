@@ -9,6 +9,8 @@ import { guardianAccessApi } from "@/services/guardianAccess";
 import type { GuardianAccessApi } from "@/services/guardianAccess";
 import { studentPortalApi as defaultStudentPortalApi } from "@/services/studentPortal";
 import type { StudentPortalApi } from "@/services/studentPortal";
+import { teacherWorkspaceApi as defaultTeacherWorkspaceApi } from "@/services/teacherWorkspace";
+import type { TeacherWorkspaceApi } from "@/services/teacherWorkspace";
 
 const GuardianAccessApiContext = createContext<GuardianAccessApi | null>(null);
 
@@ -84,23 +86,57 @@ export function useStudentPortalApi(): StudentPortalApi {
   return api;
 }
 
+const TeacherWorkspaceApiContext = createContext<TeacherWorkspaceApi | null>(null);
+
+/**
+ * Makes the teacher workspace API injectable. The application uses the real client; the tests
+ * inject a fake built with `vi.fn()`.
+ */
+export function TeacherWorkspaceApiProvider({
+  api,
+  children,
+}: {
+  api?: TeacherWorkspaceApi;
+  children: ReactNode;
+}) {
+  const value = useMemo<TeacherWorkspaceApi>(() => api ?? defaultTeacherWorkspaceApi, [api]);
+  return (
+    <TeacherWorkspaceApiContext.Provider value={value}>
+      {children}
+    </TeacherWorkspaceApiContext.Provider>
+  );
+}
+
+/** Reads the teacher workspace API bound to the closest provider. */
+export function useTeacherWorkspaceApi(): TeacherWorkspaceApi {
+  const api = useContext(TeacherWorkspaceApiContext);
+  if (!api) {
+    throw new Error("useTeacherWorkspaceApi must be used within a TeacherWorkspaceApiProvider");
+  }
+  return api;
+}
+
 /** Composes every application-level provider used by the routes. */
 export function AppProviders({
   children,
   authApi,
   studentPortalApi,
+  teacherWorkspaceApi,
 }: {
   children: ReactNode;
   authApi?: AuthApi;
   studentPortalApi?: StudentPortalApi;
+  teacherWorkspaceApi?: TeacherWorkspaceApi;
 }) {
   return (
     <AuthApiProvider api={authApi}>
       <AuthSessionProvider>
         <StudentPortalApiProvider api={studentPortalApi}>
-          <GuardianAccessApiProvider>
-            <GuardianSessionProvider>{children}</GuardianSessionProvider>
-          </GuardianAccessApiProvider>
+          <TeacherWorkspaceApiProvider api={teacherWorkspaceApi}>
+            <GuardianAccessApiProvider>
+              <GuardianSessionProvider>{children}</GuardianSessionProvider>
+            </GuardianAccessApiProvider>
+          </TeacherWorkspaceApiProvider>
         </StudentPortalApiProvider>
       </AuthSessionProvider>
     </AuthApiProvider>
