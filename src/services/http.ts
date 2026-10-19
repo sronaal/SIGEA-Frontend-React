@@ -49,6 +49,9 @@ export class ApiError extends Error {
 export interface HttpClient {
   get<T>(path: string, accessToken?: string): Promise<T>;
   post<T>(path: string, body: unknown, accessToken?: string): Promise<T>;
+  patch<T>(path: string, body: unknown, accessToken?: string): Promise<T>;
+  put<T>(path: string, body: unknown, accessToken?: string): Promise<T>;
+  delete<T>(path: string, body?: unknown, accessToken?: string): Promise<T>;
 }
 
 function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
@@ -100,7 +103,7 @@ export function createHttpClient(baseUrl: string): HttpClient {
 
   const send = async <T>(
     path: string,
-    method: "GET" | "POST",
+    method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
     body: unknown,
     accessToken?: string,
   ): Promise<T> => {
@@ -109,7 +112,7 @@ export function createHttpClient(baseUrl: string): HttpClient {
       response = await fetch(url(path), {
         method,
         headers: buildHeaders(accessToken),
-        ...(method === "POST" ? { body: JSON.stringify(body) } : {}),
+        ...(method !== "GET" && body !== undefined ? { body: JSON.stringify(body) } : {}),
       });
     } catch {
       throw new ApiError(0, "NETWORK_ERROR", "The API is unreachable.");
@@ -134,6 +137,11 @@ export function createHttpClient(baseUrl: string): HttpClient {
   return {
     get: <T>(path: string, accessToken?: string) => send<T>(path, "GET", undefined, accessToken),
     post: <T>(path: string, body: unknown, accessToken?: string) => send<T>(path, "POST", body, accessToken),
+    patch: <T>(path: string, body: unknown, accessToken?: string) =>
+      send<T>(path, "PATCH", body, accessToken),
+    put: <T>(path: string, body: unknown, accessToken?: string) => send<T>(path, "PUT", body, accessToken),
+    delete: <T>(path: string, body?: unknown, accessToken?: string) =>
+      send<T>(path, "DELETE", body, accessToken),
   };
 }
 

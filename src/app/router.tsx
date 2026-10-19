@@ -1,12 +1,51 @@
 import { Navigate, createBrowserRouter } from "react-router";
 import type { RouteObject } from "react-router";
 
+import { RequireRole } from "@/app/guards";
+import { PageHeader } from "@/components/ui";
+import LoginPage from "@/features/auth/LoginPage";
+import AppLayout from "@/layouts/AppLayout";
+
 function NotFound() {
   return (
     <div className="not-found">
       <h1>Página no encontrada</h1>
+      <a href="/login">Volver al inicio de sesión</a>
       <a href="/acudientes">Volver al acceso de acudientes</a>
     </div>
+  );
+}
+
+/** Temporary landing of the student role; the real screens arrive in the next wave. */
+function StudentHome() {
+  return (
+    <PageHeader
+      eyebrow="MI ESPACIO"
+      title="Mi espacio"
+      description="Aquí verás el resumen de tu proceso académico."
+    />
+  );
+}
+
+/** Temporary landing of the teacher role; the real screens arrive in the next wave. */
+function TeacherHome() {
+  return (
+    <PageHeader
+      eyebrow="ESPACIO DOCENTE"
+      title="Espacio docente"
+      description="Aquí verás tus grupos, asignaturas y actividades."
+    />
+  );
+}
+
+/** Temporary screen for the sections that the next wave replaces with the real pages. */
+function PendingScreen() {
+  return (
+    <PageHeader
+      eyebrow="PRÓXIMA ENTREGA"
+      title="Próximamente"
+      description="Esta sección se habilitará con las pantallas conectadas a la API."
+    />
   );
 }
 
@@ -15,12 +54,37 @@ function NotFound() {
  * with `createMemoryRouter` instead of the browser history.
  */
 export const routes: RouteObject[] = [
-  { path: "/", element: <Navigate to="/acudientes" replace /> },
+  { path: "/", element: <Navigate to="/login" replace /> },
+  { path: "/login", Component: LoginPage },
   {
     path: "/acudientes",
     lazy: async () => ({
       Component: (await import("@/features/guardian-access/GuardianAccessPage")).default,
     }),
+  },
+  {
+    element: <RequireRole role="ESTUDIANTE" />,
+    children: [
+      {
+        element: <AppLayout />,
+        children: [
+          { path: "/estudiante", Component: StudentHome },
+          { path: "/estudiante/*", Component: PendingScreen },
+        ],
+      },
+    ],
+  },
+  {
+    element: <RequireRole role="PROFESOR" />,
+    children: [
+      {
+        element: <AppLayout />,
+        children: [
+          { path: "/profesor", Component: TeacherHome },
+          { path: "/profesor/*", Component: PendingScreen },
+        ],
+      },
+    ],
   },
   { path: "*", Component: NotFound },
 ];
