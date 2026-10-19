@@ -399,7 +399,7 @@ export function StudentGradesPage() {
       <PageHeader
         eyebrow="MIS CALIFICACIONES"
         title="Mis calificaciones"
-        description="Consulta tus resultados y las observaciones de cada profesor."
+        description="Consulta tus resultados por asignatura y evaluación."
       />
 
       <section className="grade-overview">
@@ -463,7 +463,6 @@ export function StudentGradesPage() {
                     <th>Ponderación</th>
                     <th>Período</th>
                     <th>Nota</th>
-                    <th>Observación</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -480,9 +479,6 @@ export function StudentGradesPage() {
                             {formatGrade(grade.grade)}
                           </span>
                         )}
-                      </td>
-                      <td className="observation-cell">
-                        {grade.feedback || "Sin observaciones"}
                       </td>
                     </tr>
                   ))}

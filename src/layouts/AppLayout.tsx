@@ -64,6 +64,7 @@ export default function AppLayout() {
 
   const isStudent = role === "ESTUDIANTE";
   const navigation = isStudent ? STUDENT_NAV : TEACHER_NAV;
+  const institutionName = import.meta.env.VITE_INSTITUTION_NAME || "SIGEA";
   const fullName = user ? `${user.nombres} ${user.apellidos}` : "Sesión activa";
   const initials = initialsOf(user?.nombres, user?.apellidos);
   const activeItem = navigation
@@ -122,7 +123,7 @@ export default function AppLayout() {
               <Menu />
             </Button>
             <div>
-              <span>Institución Educativa Horizonte</span>
+              <span>{institutionName}</span>
               <strong>{activeLabel}</strong>
             </div>
           </div>

@@ -316,10 +316,13 @@ describe("StudentGradesPage", () => {
     expect(await screen.findByRole("heading", { name: /mis calificaciones/i })).toBeInTheDocument();
     expect(screen.getAllByText("Matemáticas").length).toBeGreaterThan(0);
     expect(screen.getByText("Parcial 1")).toBeInTheDocument();
-    expect(screen.getByText("Buen trabajo.")).toBeInTheDocument();
     expect(screen.getByText("Taller de ecuaciones")).toBeInTheDocument();
     expect(screen.getByText("Pendiente")).toBeInTheDocument();
     expect(screen.getAllByText("Ciencias Naturales").length).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole("columnheader", { name: /observación/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Sin observaciones")).not.toBeInTheDocument();
     expect(api.getGrades).toHaveBeenCalledWith("student-token");
   });
 

@@ -3,7 +3,10 @@ import type { HttpClient } from "@/services/http";
 import type {
   ActivityPayload,
   ActivitySubmissions,
+  AssessmentGrades,
   AssessmentPayload,
+  AssignmentActivities,
+  AssignmentAssessments,
   AssignmentStudents,
   AttendancePayload,
   GradeBatch,
@@ -30,6 +33,8 @@ export interface TeacherWorkspaceApi {
   getStudents(assignmentId: number, accessToken: string): Promise<AssignmentStudents>;
   /** Attendance records of one session of an assignment. */
   getAttendance(assignmentId: number, date: string, accessToken: string): Promise<TeacherAttendance>;
+  /** Every activity of an assignment, drafts included. */
+  getActivities(assignmentId: number, accessToken: string): Promise<AssignmentActivities>;
   /** Registers (or updates) the attendance of one session. */
   saveAttendance(
     assignmentId: number,
@@ -58,6 +63,10 @@ export interface TeacherWorkspaceApi {
     payload: AssessmentPayload,
     accessToken: string,
   ): Promise<TeacherAssessment>;
+  /** Every assessment of an assignment plus the weight accumulated by the backend. */
+  getAssessments(assignmentId: number, accessToken: string): Promise<AssignmentAssessments>;
+  /** Recorded grades of one assessment; a missing grade travels as `null`. */
+  getAssessmentGrades(assessmentId: number, accessToken: string): Promise<AssessmentGrades>;
   /** Records (or updates) the grades of a group in one assessment. */
   saveGrades(assessmentId: number, payload: GradeBatchPayload, accessToken: string): Promise<GradeBatch>;
 }
@@ -78,6 +87,11 @@ export function createTeacherWorkspaceApi(client: HttpClient = httpClient): Teac
     getAttendance: (assignmentId, date, accessToken) =>
       client.get<TeacherAttendance>(
         `${TEACHER_WORKSPACE_BASE_PATH}/assignments/${assignmentId}/attendance?date=${encodeURIComponent(date)}`,
+        accessToken,
+      ),
+    getActivities: (assignmentId, accessToken) =>
+      client.get<AssignmentActivities>(
+        `${TEACHER_WORKSPACE_BASE_PATH}/assignments/${assignmentId}/activities`,
         accessToken,
       ),
     saveAttendance: (assignmentId, payload, accessToken) =>
@@ -113,6 +127,16 @@ export function createTeacherWorkspaceApi(client: HttpClient = httpClient): Teac
       client.post<TeacherAssessment>(
         `${TEACHER_WORKSPACE_BASE_PATH}/assignments/${assignmentId}/assessments`,
         payload,
+        accessToken,
+      ),
+    getAssessments: (assignmentId, accessToken) =>
+      client.get<AssignmentAssessments>(
+        `${TEACHER_WORKSPACE_BASE_PATH}/assignments/${assignmentId}/assessments`,
+        accessToken,
+      ),
+    getAssessmentGrades: (assessmentId, accessToken) =>
+      client.get<AssessmentGrades>(
+        `${TEACHER_WORKSPACE_BASE_PATH}/assessments/${assessmentId}/grades`,
         accessToken,
       ),
     saveGrades: (assessmentId, payload, accessToken) =>

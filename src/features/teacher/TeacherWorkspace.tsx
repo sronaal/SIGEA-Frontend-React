@@ -70,12 +70,6 @@ function assignmentLabel(assignment: TeacherAssignment): string {
   return `${assignment.subject} · ${assignment.grade}° ${assignment.group}`;
 }
 
-/** Activity created in this session with the assignment it belongs to. */
-interface ActivityRow {
-  activity: TeacherActivity;
-  assignmentLabel: string;
-}
-
 /** Groups of the professor: assignment selector and the students of the selected group. */
 export function TeacherGroupsPage() {
   const api = useTeacherWorkspaceApi();
@@ -288,10 +282,12 @@ export function TeacherActivitiesPage() {
   const api = useTeacherWorkspaceApi();
   const { accessToken } = useAuthSession();
   const [assignments, setAssignments] = useState<TeacherAssignment[]>([]);
-  const [activities, setActivities] = useState<ActivityRow[]>([]);
+  const [activities, setActivities] = useState<TeacherActivity[] | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [activitiesError, setActivitiesError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -324,6 +320,43 @@ export function TeacherActivitiesPage() {
     };
   }, [api, accessToken]);
 
+  useEffect(() => {
+    if (!accessToken || selectedId === null) return;
+    let active = true;
+
+    setLoadingActivities(true);
+    setActivitiesError(null);
+    setActivities(null);
+
+    api
+      .getActivities(selectedId, accessToken)
+      .then((response) => {
+        if (active) setActivities(response.activities);
+      })
+      .catch((caught) => {
+        if (active)
+          setActivitiesError(errorMessage(caught, "No pudimos cargar las actividades de la asignación."));
+      })
+      .finally(() => {
+        if (active) setLoadingActivities(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [api, accessToken, selectedId]);
+
+  const selectedAssignment = useMemo(
+    () => assignments.find((item) => item.id === selectedId) ?? null,
+    [assignments, selectedId],
+  );
+
+  const refreshActivities = async (assignmentId: number, token: string): Promise<void> => {
+    const response = await api.getActivities(assignmentId, token);
+    setActivities(response.activities);
+    setActivitiesError(null);
+  };
+
   const resetForm = (): void => {
     setTitle("");
     setDescription("");
@@ -352,12 +385,11 @@ export function TeacherActivitiesPage() {
       setFormError("Indica la fecha límite.");
       return;
     }
-    const assignment = assignments.find((item) => item.id === selectedId);
-    if (!assignment || !accessToken) return;
+    if (!accessToken) return;
 
     setBusy(true);
     try {
-      const created = await api.createActivity(
+      await api.createActivity(
         selectedId,
         {
           title: title.trim(),
@@ -367,10 +399,6 @@ export function TeacherActivitiesPage() {
         },
         accessToken,
       );
-      setActivities((current) => [
-        { activity: created, assignmentLabel: assignmentLabel(assignment) },
-        ...current,
-      ]);
       setFormOpen(false);
       resetForm();
       setMessage(
@@ -378,6 +406,13 @@ export function TeacherActivitiesPage() {
           ? "Actividad publicada correctamente."
           : "Actividad guardada como borrador.",
       );
+      try {
+        await refreshActivities(selectedId, accessToken);
+      } catch (caught) {
+        setWriteError(
+          errorMessage(caught, "La actividad se guardó, pero no pudimos actualizar el listado."),
+        );
+      }
     } catch (caught) {
       setFormError(errorMessage(caught, "No pudimos crear la actividad. Intenta de nuevo."));
     } finally {
@@ -388,16 +423,12 @@ export function TeacherActivitiesPage() {
   const handlePublish = async (activityId: number): Promise<void> => {
     setWriteError(null);
     setMessage(null);
-    if (!accessToken) return;
+    if (!accessToken || selectedId === null) return;
 
     setBusy(true);
     try {
-      const published = await api.publishActivity(activityId, accessToken);
-      setActivities((current) =>
-        current.map((row) =>
-          row.activity.id === activityId ? { ...row, activity: published } : row,
-        ),
-      );
+      await api.publishActivity(activityId, accessToken);
+      await refreshActivities(selectedId, accessToken);
       setMessage("Actividad publicada correctamente.");
     } catch (caught) {
       setWriteError(errorMessage(caught, "No pudimos publicar la actividad."));
@@ -456,24 +487,30 @@ export function TeacherActivitiesPage() {
             description="Necesitas al menos una asignación para crear actividades."
           />
         </section>
+      ) : activitiesError ? (
+        <LoadError message={activitiesError} />
+      ) : loadingActivities || activities === null ? (
+        <section className="card">
+          <LoadingSkeleton />
+        </section>
       ) : activities.length === 0 ? (
         <section className="card">
           <EmptyState
             icon={BookOpen}
             title="Sin actividades"
-            description="Las actividades que crees en esta sesión aparecerán aquí."
+            description="La asignación no tiene actividades registradas."
           />
         </section>
       ) : (
         <div className="teacher-activities-list">
-          {activities.map(({ activity, assignmentLabel: label }) => (
+          {activities.map((activity) => (
             <article className="card teacher-activity-row" key={activity.id}>
               <div className="activity-file-icon">
                 <FileText />
               </div>
               <div className="teacher-activity-main">
                 <div>
-                  <span>{label}</span>
+                  <span>{selectedAssignment ? assignmentLabel(selectedAssignment) : "—"}</span>
                   <h2>{activity.title}</h2>
                 </div>
                 <div className="activity-stats">

@@ -126,6 +126,10 @@ function createApi(overrides: Partial<TeacherWorkspaceApi> = {}): TeacherWorkspa
     getAssignments: vi.fn(async () => ASSIGNMENTS),
     getStudents: vi.fn(async () => STUDENT_LIST),
     getAttendance: vi.fn(),
+    getActivities: vi.fn(async (assignmentId: number) => ({
+      assignmentId,
+      activities: [] as TeacherActivity[],
+    })),
     saveAttendance: vi.fn(),
     createActivity: vi.fn(async () => DRAFT),
     publishActivity: vi.fn(async () => PUBLISHED),
@@ -137,6 +141,15 @@ function createApi(overrides: Partial<TeacherWorkspaceApi> = {}): TeacherWorkspa
       feedback: "Buen trabajo",
     })),
     createAssessment: vi.fn(),
+    getAssessments: vi.fn(async (assignmentId: number) => ({
+      assignmentId,
+      accumulatedWeight: 0,
+      assessments: [],
+    })),
+    getAssessmentGrades: vi.fn(async (assessmentId: number) => ({
+      assessmentId,
+      records: [],
+    })),
     saveGrades: vi.fn(),
     ...overrides,
   };
@@ -227,9 +240,24 @@ describe("TeacherGroupsPage", () => {
 });
 
 describe("TeacherActivitiesPage", () => {
-  it("starts with an empty list and creates a draft", async () => {
+  it("renders the activities returned by the API", async () => {
+    const api = createApi({
+      getActivities: vi.fn(async () => ({ assignmentId: 1, activities: [DRAFT] })),
+    });
+    renderScreen(<TeacherActivitiesPage />, api, { path: "/profesor/actividades" });
+
+    expect(await screen.findByText("Taller de ecuaciones")).toBeInTheDocument();
+    expect(screen.getByText("Borrador")).toBeInTheDocument();
+    expect(api.getActivities).toHaveBeenCalledWith(1, "teacher-token");
+  });
+
+  it("starts with an empty list and refreshes it after creating a draft", async () => {
     const user = userEvent.setup();
-    const api = createApi();
+    const getActivities = vi
+      .fn()
+      .mockResolvedValueOnce({ assignmentId: 1, activities: [] })
+      .mockResolvedValueOnce({ assignmentId: 1, activities: [DRAFT] });
+    const api = createApi({ getActivities });
     renderScreen(<TeacherActivitiesPage />, api, { path: "/profesor/actividades" });
 
     expect(await screen.findByText(/sin actividades/i)).toBeInTheDocument();
@@ -258,13 +286,19 @@ describe("TeacherActivitiesPage", () => {
       ),
     );
     expect(await screen.findByText(/actividad guardada como borrador/i)).toBeInTheDocument();
-    expect(screen.getByText("Taller de ecuaciones")).toBeInTheDocument();
+    expect(await screen.findByText("Taller de ecuaciones")).toBeInTheDocument();
     expect(screen.getByText("Borrador")).toBeInTheDocument();
+    expect(getActivities).toHaveBeenCalledTimes(2);
   });
 
-  it("publishes a draft from the list", async () => {
+  it("publishes a draft and refreshes the list from the API", async () => {
     const user = userEvent.setup();
-    const api = createApi();
+    const getActivities = vi
+      .fn()
+      .mockResolvedValueOnce({ assignmentId: 1, activities: [] })
+      .mockResolvedValueOnce({ assignmentId: 1, activities: [DRAFT] })
+      .mockResolvedValueOnce({ assignmentId: 1, activities: [PUBLISHED] });
+    const api = createApi({ getActivities });
     renderScreen(<TeacherActivitiesPage />, api, { path: "/profesor/actividades" });
 
     await screen.findByText(/sin actividades/i);
@@ -286,6 +320,7 @@ describe("TeacherActivitiesPage", () => {
       "href",
       "/profesor/actividades/7/entregas",
     );
+    expect(getActivities).toHaveBeenCalledTimes(3);
   });
 
   it("shows the message of the API when the creation fails", async () => {

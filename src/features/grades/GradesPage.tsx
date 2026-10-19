@@ -46,13 +46,18 @@ export default function GradesPage() {
   const [assignments, setAssignments] = useState<TeacherAssignment[]>([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null);
   const [students, setStudents] = useState<TeacherStudent[]>([]);
-  const [assessments, setAssessments] = useState<TeacherAssessment[]>([]);
+  const [assessments, setAssessments] = useState<TeacherAssessment[] | null>(null);
+  const [accumulatedWeight, setAccumulatedWeight] = useState<number | null>(null);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<number | null>(null);
   const [grades, setGrades] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(true);
+  const [loadingAssessments, setLoadingAssessments] = useState(true);
+  const [loadingGrades, setLoadingGrades] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [studentsError, setStudentsError] = useState<string | null>(null);
+  const [assessmentsError, setAssessmentsError] = useState<string | null>(null);
+  const [gradesError, setGradesError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
   const [weight, setWeight] = useState("");
@@ -106,17 +111,74 @@ export default function GradesPage() {
     };
   }, [api, accessToken, selectedAssignmentId]);
 
+  useEffect(() => {
+    if (!accessToken || selectedAssignmentId === null) return;
+    let active = true;
+
+    setLoadingAssessments(true);
+    setAssessmentsError(null);
+    setAssessments(null);
+    setAccumulatedWeight(null);
+
+    api
+      .getAssessments(selectedAssignmentId, accessToken)
+      .then((response) => {
+        if (!active) return;
+        setAssessments(response.assessments);
+        setAccumulatedWeight(response.accumulatedWeight);
+      })
+      .catch((caught) => {
+        if (active)
+          setAssessmentsError(errorMessage(caught, "No pudimos cargar las evaluaciones."));
+      })
+      .finally(() => {
+        if (active) setLoadingAssessments(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [api, accessToken, selectedAssignmentId]);
+
+  useEffect(() => {
+    if (!accessToken || selectedAssessmentId === null) return;
+    let active = true;
+
+    setLoadingGrades(true);
+    setGradesError(null);
+    setGrades({});
+
+    api
+      .getAssessmentGrades(selectedAssessmentId, accessToken)
+      .then((response) => {
+        if (!active) return;
+        const next: Record<number, string> = {};
+        response.records.forEach((record) => {
+          if (record.grade !== null) next[record.studentId] = String(record.grade);
+        });
+        setGrades(next);
+      })
+      .catch((caught) => {
+        if (active) setGradesError(errorMessage(caught, "No pudimos cargar las notas registradas."));
+      })
+      .finally(() => {
+        if (active) setLoadingGrades(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [api, accessToken, selectedAssessmentId]);
+
   const assignment = useMemo(
     () => assignments.find((item) => item.id === selectedAssignmentId) ?? null,
     [assignments, selectedAssignmentId],
   );
 
   const selectedAssessment = useMemo(
-    () => assessments.find((item) => item.id === selectedAssessmentId) ?? null,
+    () => (assessments ?? []).find((item) => item.id === selectedAssessmentId) ?? null,
     [assessments, selectedAssessmentId],
   );
-
-  const accumulatedWeight = assessments.reduce((total, assessment) => total + assessment.weight, 0);
 
   const gradeErrors = useMemo(() => {
     const errors: Record<number, string> = {};
@@ -164,14 +226,22 @@ export default function GradesPage() {
         { name: name.trim(), weight: numericWeight, period: numericPeriod },
         accessToken,
       );
-      setAssessments((current) => [...current, created]);
-      setSelectedAssessmentId(created.id);
-      setGrades({});
       setName("");
       setWeight("");
       setPeriod("");
       setFormOpen(false);
       setFormError(null);
+      try {
+        const response = await api.getAssessments(selectedAssignmentId, accessToken);
+        setAssessments(response.assessments);
+        setAccumulatedWeight(response.accumulatedWeight);
+        setSelectedAssessmentId(created.id);
+        setGrades({});
+      } catch (caught) {
+        setWriteError(
+          errorMessage(caught, "La evaluación se creó, pero no pudimos actualizar el listado."),
+        );
+      }
     } catch (caught) {
       setFormError(
         errorMessage(caught, "No pudimos crear la evaluación. Intenta de nuevo."),
@@ -211,6 +281,18 @@ export default function GradesPage() {
     try {
       await api.saveGrades(selectedAssessmentId, { records }, accessToken);
       setSaved(true);
+      try {
+        const response = await api.getAssessmentGrades(selectedAssessmentId, accessToken);
+        const next: Record<number, string> = {};
+        response.records.forEach((record) => {
+          if (record.grade !== null) next[record.studentId] = String(record.grade);
+        });
+        setGrades(next);
+      } catch (caught) {
+        setWriteError(
+          errorMessage(caught, "Las notas se guardaron, pero no pudimos actualizar el listado."),
+        );
+      }
     } catch (caught) {
       setWriteError(errorMessage(caught, "No pudimos guardar las notas. Intenta de nuevo."));
     } finally {
@@ -270,8 +352,11 @@ export default function GradesPage() {
                 setStudentsError(null);
                 setStudents([]);
                 setGrades({});
-                setAssessments([]);
+                setAssessments(null);
+                setAccumulatedWeight(null);
                 setSelectedAssessmentId(null);
+                setAssessmentsError(null);
+                setGradesError(null);
                 setSaved(false);
                 setWriteError(null);
               }}
@@ -285,7 +370,7 @@ export default function GradesPage() {
             <FilterDropdown
               label="Evaluación"
               value={selectedAssessmentId ?? ""}
-              disabled={assessments.length === 0}
+              disabled={(assessments ?? []).length === 0}
               onChange={(event) => {
                 setSelectedAssessmentId(Number(event.target.value));
                 setGrades({});
@@ -293,9 +378,9 @@ export default function GradesPage() {
               }}
             >
               <option value="" disabled>
-                {assessments.length === 0 ? "Sin evaluaciones" : "Seleccionar evaluación"}
+                {(assessments ?? []).length === 0 ? "Sin evaluaciones" : "Seleccionar evaluación"}
               </option>
-              {assessments.map((item) => (
+              {(assessments ?? []).map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name} · {item.weight}%
                 </option>
@@ -316,15 +401,21 @@ export default function GradesPage() {
             <div className="weight-progress">
               <div>
                 <span>Ponderación acumulada</span>
-                <strong data-testid="accumulated-weight">{accumulatedWeight}%</strong>
+                <strong data-testid="accumulated-weight">
+                  {accumulatedWeight === null ? "—" : `${accumulatedWeight}%`}
+                </strong>
               </div>
               <div className="progress-track">
-                <span style={{ width: `${Math.min(accumulatedWeight, 100)}%` }} />
+                <span
+                  style={{ width: `${Math.min(accumulatedWeight ?? 0, 100)}%` }}
+                />
               </div>
               <small>
-                {accumulatedWeight >= 100
-                  ? "La ponderación del período está completa."
-                  : `Promedios provisionales: falta ${100 - accumulatedWeight}% de ponderación.`}
+                {accumulatedWeight === null
+                  ? "No disponible."
+                  : accumulatedWeight >= 100
+                    ? "La ponderación del período está completa."
+                    : `Promedios provisionales: falta ${100 - accumulatedWeight}% de ponderación.`}
               </small>
             </div>
           </section>
@@ -332,6 +423,18 @@ export default function GradesPage() {
           {studentsError && (
             <p className="field-error" role="alert">
               {studentsError}
+            </p>
+          )}
+
+          {assessmentsError && (
+            <p className="field-error" role="alert">
+              {assessmentsError}
+            </p>
+          )}
+
+          {gradesError && (
+            <p className="field-error" role="alert">
+              {gradesError}
             </p>
           )}
 
@@ -358,11 +461,16 @@ export default function GradesPage() {
               />
             ) : (
               <>
-                {assessments.length === 0 && (
+                {loadingAssessments && (
+                  <p className="field-hint" role="status">
+                    Cargando evaluaciones…
+                  </p>
+                )}
+                {(assessments ?? []).length === 0 && !loadingAssessments && !assessmentsError && (
                   <EmptyState
                     icon={ClipboardCheck}
                     title="Sin evaluaciones"
-                    description="Las evaluaciones que crees en esta sesión aparecerán aquí para registrar sus notas."
+                    description="La asignación no tiene evaluaciones registradas para el período."
                   />
                 )}
                 <div className="table-scroll">
@@ -400,7 +508,7 @@ export default function GradesPage() {
                                   min="0"
                                   max="5"
                                   step="0.1"
-                                  disabled={!selectedAssessment}
+                                  disabled={!selectedAssessment || loadingGrades}
                                   value={raw}
                                   onChange={(event) => {
                                     setSaved(false);

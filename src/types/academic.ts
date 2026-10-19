@@ -239,6 +239,12 @@ export interface TeacherActivity {
   status: ActivityStatus;
 }
 
+/** Body of `GET /api/v1/assignments/{id}/activities` (drafts included). */
+export interface AssignmentActivities {
+  assignmentId: number;
+  activities: TeacherActivity[];
+}
+
 /** Body of `POST /api/v1/assignments/{id}/activities`. */
 export interface ActivityPayload {
   title: string;
@@ -292,6 +298,26 @@ export interface AssessmentPayload {
   name: string;
   weight: number;
   period: number;
+}
+
+/** Body of `GET /api/v1/assignments/{id}/assessments`. */
+export interface AssignmentAssessments {
+  assignmentId: number;
+  accumulatedWeight: number;
+  assessments: TeacherAssessment[];
+}
+
+/** Grade of one student in one assessment; `null` when the student has no grade. */
+export interface AssessmentGradeRecord {
+  studentId: number;
+  studentName: string;
+  grade: number | null;
+}
+
+/** Body of `GET /api/v1/assessments/{id}/grades`. */
+export interface AssessmentGrades {
+  assessmentId: number;
+  records: AssessmentGradeRecord[];
 }
 
 /** Persisted grade of one student in one assessment. */

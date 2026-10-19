@@ -61,10 +61,6 @@ function enrollmentLine(assignment: TeacherAssignment): string {
   return `${assignment.studentCount} estudiantes`;
 }
 
-function emptyStatuses(students: TeacherStudent[]): Record<number, AttendanceStatus> {
-  return Object.fromEntries(students.map((student) => [student.id, "PRESENTE" as AttendanceStatus]));
-}
-
 /** Landing of the professor: the real teaching assignments returned by the API. */
 export function TeacherDashboardPage() {
   const api = useTeacherWorkspaceApi();
@@ -123,12 +119,13 @@ export function TeacherDashboardPage() {
         .filter((period): period is number => period !== null),
     ),
   ];
+  const greetingName = user?.nombres?.trim() || user?.correo || "SIGEA";
 
   return (
     <div className="page">
       <PageHeader
         eyebrow={year ? `CARGA ACADÉMICA · ${year}` : "ESPACIO DOCENTE"}
-        title={`Hola, ${user?.nombres ?? "profesor"}`}
+        title={`Hola, ${greetingName}`}
         description="Estas son tus asignaturas y grupos asignados."
       />
 
@@ -311,7 +308,7 @@ export function AttendancePage() {
       .then(([studentList, attendance]) => {
         if (!active) return;
         setStudents(studentList.students);
-        const initial = emptyStatuses(studentList.students);
+        const initial: Record<number, AttendanceStatus> = {};
         attendance.records.forEach((record: TeacherAttendanceRecord) => {
           initial[record.studentId] = record.status;
         });
@@ -336,6 +333,8 @@ export function AttendancePage() {
 
   const selectAssignment = (assignmentId: number): void => {
     setSelectedId(assignmentId);
+    setStudents([]);
+    setStatuses({});
     setLoadingSession(true);
     setLoadError(null);
     setSaveError(null);
@@ -344,6 +343,7 @@ export function AttendancePage() {
 
   const selectDate = (nextDate: string): void => {
     setDate(nextDate);
+    setStatuses({});
     setLoadingSession(true);
     setLoadError(null);
     setSaveError(null);
@@ -353,9 +353,15 @@ export function AttendancePage() {
   const count = (state: AttendanceStatus): number =>
     Object.values(statuses).filter((value) => value === state).length;
 
+  const unmarkedCount = students.filter((student) => statuses[student.id] === undefined).length;
+
   const setAllPresent = (): void => {
     setSaved(false);
-    setStatuses(emptyStatuses(students));
+    setStatuses(
+      Object.fromEntries(
+        students.map((student) => [student.id, "PRESENTE" as AttendanceStatus]),
+      ),
+    );
   };
 
   const setStatus = (studentId: number, status: AttendanceStatus): void => {
@@ -368,19 +374,21 @@ export function AttendancePage() {
     setSaved(false);
     if (!accessToken || selectedId === null) return;
 
+    const records = students
+      .filter((student) => statuses[student.id] !== undefined)
+      .map((student) => ({
+        studentId: student.id,
+        status: statuses[student.id] as AttendanceStatus,
+      }));
+
+    if (records.length === 0) {
+      setSaveError("Marca al menos un estudiante antes de guardar.");
+      return;
+    }
+
     setSaving(true);
     try {
-      await api.saveAttendance(
-        selectedId,
-        {
-          date,
-          records: students.map((student) => ({
-            studentId: student.id,
-            status: statuses[student.id] ?? "PRESENTE",
-          })),
-        },
-        accessToken,
-      );
+      await api.saveAttendance(selectedId, { date, records }, accessToken);
       setSaved(true);
     } catch (caught) {
       setSaveError(errorMessage(caught, "No pudimos guardar la asistencia. Intenta de nuevo."));
@@ -478,7 +486,11 @@ export function AttendancePage() {
             />
           ) : (
             <>
-              <div className="attendance-summary attendance-summary-five">
+              <div
+                className={`attendance-summary ${
+                  unmarkedCount > 0 ? "attendance-summary-six" : "attendance-summary-five"
+                }`}
+              >
                 <div>
                   <strong>{students.length}</strong>
                   <span>Total</span>
@@ -489,6 +501,12 @@ export function AttendancePage() {
                     <span>{ATTENDANCE_PLURALS[state]}</span>
                   </div>
                 ))}
+                {unmarkedCount > 0 && (
+                  <div>
+                    <strong data-testid="attendance-count-unmarked">{unmarkedCount}</strong>
+                    <span>Sin registrar</span>
+                  </div>
+                )}
               </div>
 
               <div className="attendance-list">
@@ -543,7 +561,7 @@ export function AttendancePage() {
                   )}
                   {!saved && !saveError && <span>Revisa los estados antes de guardar.</span>}
                 </div>
-                <Button onClick={handleSave} disabled={saving}>
+                <Button onClick={handleSave} disabled={saving || students.every((student) => statuses[student.id] === undefined)}>
                   <Save /> {saving ? "Guardando…" : "Guardar asistencia"}
                 </Button>
               </div>

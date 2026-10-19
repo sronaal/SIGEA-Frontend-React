@@ -89,12 +89,22 @@ function createApi(overrides: Partial<TeacherWorkspaceApi> = {}): TeacherWorkspa
     getAssignments: vi.fn(async () => ASSIGNMENTS),
     getStudents: vi.fn(async () => STUDENT_LIST),
     getAttendance: vi.fn(),
+    getActivities: vi.fn(async (assignmentId: number) => ({ assignmentId, activities: [] })),
     saveAttendance: vi.fn(),
     createActivity: vi.fn(),
     publishActivity: vi.fn(),
     getSubmissions: vi.fn(),
     gradeSubmission: vi.fn(),
     createAssessment: vi.fn(async () => ASSESSMENT),
+    getAssessments: vi.fn(async (assignmentId: number) => ({
+      assignmentId,
+      accumulatedWeight: 0,
+      assessments: [] as TeacherAssessment[],
+    })),
+    getAssessmentGrades: vi.fn(async (assessmentId: number) => ({
+      assessmentId,
+      records: [] as Array<{ studentId: number; studentName: string; grade: number | null }>,
+    })),
     saveGrades: vi.fn(async () => ({
       assessmentId: ASSESSMENT.id,
       grades: [
@@ -155,13 +165,69 @@ describe("GradesPage", () => {
     ).toBeInTheDocument();
     expect(await screen.findByText("Mariana Gómez")).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Sin evaluaciones" })).toBeInTheDocument();
+    expect(screen.getByText(/no tiene evaluaciones registradas/i)).toBeInTheDocument();
+    expect(screen.queryByText(/en esta sesión/i)).not.toBeInTheDocument();
     expect(api.getStudents).toHaveBeenCalledWith(1, "teacher-token");
+    expect(api.getAssessments).toHaveBeenCalledWith(1, "teacher-token");
     expect(screen.getByTestId("accumulated-weight")).toHaveTextContent("0%");
   });
 
-  it("creates an assessment and shows its accumulated weight", async () => {
+  it("shows the accumulated weight returned by the API, not a local sum", async () => {
+    const api = createApi({
+      getAssessments: vi.fn(async () => ({
+        assignmentId: 1,
+        accumulatedWeight: 55,
+        assessments: [ASSESSMENT],
+      })),
+    });
+    renderGrades(api);
+
+    await screen.findByText("Mariana Gómez");
+    expect(await screen.findByTestId("accumulated-weight")).toHaveTextContent("55%");
+    expect(screen.getAllByText(/parcial de álgebra/i).length).toBeGreaterThan(0);
+  });
+
+  it("prefills the grades returned by the API for the selected assessment", async () => {
     const user = userEvent.setup();
-    const api = createApi();
+    const api = createApi({
+      getAssessments: vi.fn(async () => ({
+        assignmentId: 1,
+        accumulatedWeight: 40,
+        assessments: [ASSESSMENT],
+      })),
+      getAssessmentGrades: vi.fn(async () => ({
+        assessmentId: ASSESSMENT.id,
+        records: [
+          { studentId: 1, studentName: "Mariana Gómez", grade: 4.5 },
+          { studentId: 2, studentName: "Juan Pérez", grade: null },
+        ],
+      })),
+    });
+    renderGrades(api);
+
+    await screen.findByText("Mariana Gómez");
+    await user.selectOptions(screen.getByLabelText("Evaluación"), String(ASSESSMENT.id));
+
+    await waitFor(() =>
+      expect(api.getAssessmentGrades).toHaveBeenCalledWith(10, "teacher-token"),
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText(/calificación de mariana gómez/i)).toHaveValue(4.5),
+    );
+    expect(screen.getByLabelText(/calificación de juan pérez/i)).toHaveValue(null);
+  });
+
+  it("creates an assessment and refreshes its accumulated weight from the API", async () => {
+    const user = userEvent.setup();
+    const getAssessments = vi
+      .fn()
+      .mockResolvedValueOnce({ assignmentId: 1, accumulatedWeight: 0, assessments: [] })
+      .mockResolvedValueOnce({
+        assignmentId: 1,
+        accumulatedWeight: 40,
+        assessments: [ASSESSMENT],
+      });
+    const api = createApi({ getAssessments });
     renderGrades(api);
 
     await screen.findByText("Mariana Gómez");
@@ -176,6 +242,7 @@ describe("GradesPage", () => {
     );
     expect(await screen.findByTestId("accumulated-weight")).toHaveTextContent("40%");
     expect(screen.getAllByText(/parcial de álgebra/i).length).toBeGreaterThan(0);
+    expect(getAssessments).toHaveBeenCalledTimes(2);
   });
 
   it("shows the 409 of the weight limit", async () => {
@@ -199,9 +266,27 @@ describe("GradesPage", () => {
     );
   });
 
-  it("records the grades of the group in the selected assessment", async () => {
+  it("records the grades of the group and refreshes them from the API", async () => {
     const user = userEvent.setup();
-    const api = createApi();
+    const getAssessments = vi
+      .fn()
+      .mockResolvedValueOnce({ assignmentId: 1, accumulatedWeight: 0, assessments: [] })
+      .mockResolvedValue({
+        assignmentId: 1,
+        accumulatedWeight: 40,
+        assessments: [ASSESSMENT],
+      });
+    const getAssessmentGrades = vi
+      .fn()
+      .mockResolvedValueOnce({ assessmentId: ASSESSMENT.id, records: [] })
+      .mockResolvedValueOnce({
+        assessmentId: ASSESSMENT.id,
+        records: [
+          { studentId: 1, studentName: "Mariana Gómez", grade: 4.8 },
+          { studentId: 2, studentName: "Juan Pérez", grade: 3 },
+        ],
+      });
+    const api = createApi({ getAssessments, getAssessmentGrades });
     renderGrades(api);
 
     await screen.findByText("Mariana Gómez");
@@ -225,11 +310,23 @@ describe("GradesPage", () => {
       ),
     );
     expect(await screen.findByRole("status")).toHaveTextContent(/notas guardadas/i);
+    await waitFor(() =>
+      expect(screen.getByLabelText(/calificación de mariana gómez/i)).toHaveValue(4.8),
+    );
+    expect(getAssessmentGrades).toHaveBeenCalledTimes(2);
   });
 
   it("rejects an out-of-range grade in the form", async () => {
     const user = userEvent.setup();
-    const api = createApi();
+    const getAssessments = vi
+      .fn()
+      .mockResolvedValueOnce({ assignmentId: 1, accumulatedWeight: 0, assessments: [] })
+      .mockResolvedValue({
+        assignmentId: 1,
+        accumulatedWeight: 40,
+        assessments: [ASSESSMENT],
+      });
+    const api = createApi({ getAssessments });
     renderGrades(api);
 
     await screen.findByText("Mariana Gómez");

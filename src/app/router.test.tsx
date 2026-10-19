@@ -103,12 +103,15 @@ function createTeacherWorkspaceApi(): TeacherWorkspaceApi {
     getAssignments: vi.fn(async () => ({ assignments: [] })),
     getStudents: vi.fn(),
     getAttendance: vi.fn(),
+    getActivities: vi.fn(async () => ({ assignmentId: 1, activities: [] })),
     saveAttendance: vi.fn(),
     createActivity: vi.fn(),
     publishActivity: vi.fn(),
     getSubmissions: vi.fn(),
     gradeSubmission: vi.fn(),
     createAssessment: vi.fn(),
+    getAssessments: vi.fn(async () => ({ assignmentId: 1, accumulatedWeight: 0, assessments: [] })),
+    getAssessmentGrades: vi.fn(async () => ({ assessmentId: 1, records: [] })),
     saveGrades: vi.fn(),
   };
 }
