@@ -242,11 +242,3 @@ export function ConfirmDialog({
     </div>
   );
 }
-
-export function DemoNotice() {
-  return (
-    <div className="demo-notice" role="note">
-      <span>Entorno de demostración</span> Los datos visibles son ilustrativos y no provienen de una API real.
-    </div>
-  );
-}

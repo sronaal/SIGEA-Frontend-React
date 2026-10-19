@@ -36,9 +36,8 @@ function levelOf(grade: number): { label: string; tone: BadgeTone } {
 }
 
 /**
- * Assessments and grades of one assignment. The API has no read endpoint for the assessments, so
- * the list holds the ones created in this session; the accumulated weight is the sum of their
- * real weights.
+ * Assessments and grades of one assignment. Both the list and the accumulated weight come from
+ * the API read model; existing grades are loaded per assessment and refreshed after saving.
  */
 export default function GradesPage() {
   const api = useTeacherWorkspaceApi();
