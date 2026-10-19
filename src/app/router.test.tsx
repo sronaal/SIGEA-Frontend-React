@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AppProviders } from "@/app/providers";
 import { routes } from "@/app/router";
 import type { AuthApi } from "@/services/auth";
+import type { StudentPortalApi } from "@/services/studentPortal";
 import type { AuthSession } from "@/types/auth";
 
 const STUDENT_SESSION: AuthSession = {
@@ -51,10 +52,59 @@ function createApi(session: AuthSession = STUDENT_SESSION): AuthApi {
   };
 }
 
-function renderAt(path: string, api: AuthApi = createApi()) {
+function createStudentPortalApi(): StudentPortalApi {
+  return {
+    getMe: vi.fn(async () => ({
+      id: 1,
+      nombres: "Mariana",
+      apellidos: "Gómez",
+      tipoDocumento: "TARJETA_IDENTIDAD",
+      numeroDocumento: "1000000001",
+      correoInstitucional: "mariana.gomez@sigea.local",
+      enrollment: { academicYear: 2026, grade: "8", group: "A", period: 2 },
+    })),
+    getDashboard: vi.fn(async () => ({
+      metrics: {
+        generalAverage: 4.2,
+        averageStatus: "DEFINITIVE" as const,
+        attendancePercentage: 96,
+        attendanceStatus: "AVAILABLE" as const,
+        pendingActivities: 1,
+        submittedActivities: 1,
+        gradedActivities: 1,
+      },
+      nextActivities: [],
+      recentGrades: [],
+    })),
+    getGrades: vi.fn(async () => ({
+      generalAverage: 4.2,
+      averageStatus: "DEFINITIVE" as const,
+      subjects: [],
+    })),
+    getActivities: vi.fn(async () => ({ activities: [] })),
+    getSubmissions: vi.fn(async () => ({ submissions: [] })),
+    getAttendance: vi.fn(async () => ({ percentage: 96, records: [] })),
+    submitActivity: vi.fn(async (activityId: number) => ({
+      id: 1,
+      activityId,
+      title: "Actividad",
+      subject: "Matemáticas",
+      submittedAt: "2026-05-20T10:00:00",
+      status: "ENTREGADA" as const,
+      grade: null,
+      feedback: null,
+    })),
+  };
+}
+
+function renderAt(
+  path: string,
+  api: AuthApi = createApi(),
+  studentPortalApi: StudentPortalApi = createStudentPortalApi(),
+) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   const result = render(
-    <AppProviders authApi={api}>
+    <AppProviders authApi={api} studentPortalApi={studentPortalApi}>
       <RouterProvider router={router} />
     </AppProviders>,
   );
@@ -112,14 +162,14 @@ describe("application router", () => {
     const { router } = renderAt("/login", createApi(STUDENT_SESSION));
 
     await logIn(user, "mariana.gomez@sigea.local");
-    await screen.findByRole("heading", { name: /mi espacio/i });
+    await screen.findByRole("heading", { name: /hola, mariana/i });
 
     await act(async () => {
       await router.navigate("/profesor");
     });
 
     expect(router.state.location.pathname).toBe("/estudiante");
-    expect(screen.getByRole("heading", { name: /mi espacio/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /hola, mariana/i })).toBeInTheDocument();
   });
 
   it("keeps the session in memory and redirects the login screen once authenticated", async () => {
@@ -127,7 +177,7 @@ describe("application router", () => {
     const { router } = renderAt("/login", createApi(STUDENT_SESSION));
 
     await logIn(user, "mariana.gomez@sigea.local");
-    await screen.findByRole("heading", { name: /mi espacio/i });
+    await screen.findByRole("heading", { name: /hola, mariana/i });
 
     await act(async () => {
       await router.navigate("/login");
@@ -143,7 +193,7 @@ describe("application router", () => {
     const { router } = renderAt("/login", createApi(STUDENT_SESSION));
 
     await logIn(user, "mariana.gomez@sigea.local");
-    await screen.findByRole("heading", { name: /mi espacio/i });
+    await screen.findByRole("heading", { name: /hola, mariana/i });
 
     expect(screen.getByText("Mariana Gómez")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /mis calificaciones/i })).toBeInTheDocument();

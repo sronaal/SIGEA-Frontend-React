@@ -7,6 +7,8 @@ import type { AuthApi } from "@/services/auth";
 import { authApi as defaultAuthApi } from "@/services/auth";
 import { guardianAccessApi } from "@/services/guardianAccess";
 import type { GuardianAccessApi } from "@/services/guardianAccess";
+import { studentPortalApi as defaultStudentPortalApi } from "@/services/studentPortal";
+import type { StudentPortalApi } from "@/services/studentPortal";
 
 const GuardianAccessApiContext = createContext<GuardianAccessApi | null>(null);
 
@@ -54,14 +56,52 @@ export function useAuthApi(): AuthApi {
   return api;
 }
 
+const StudentPortalApiContext = createContext<StudentPortalApi | null>(null);
+
+/**
+ * Makes the student portal API injectable. The application uses the real client; the tests
+ * inject a fake built with `vi.fn()`.
+ */
+export function StudentPortalApiProvider({
+  api,
+  children,
+}: {
+  api?: StudentPortalApi;
+  children: ReactNode;
+}) {
+  const value = useMemo<StudentPortalApi>(() => api ?? defaultStudentPortalApi, [api]);
+  return (
+    <StudentPortalApiContext.Provider value={value}>{children}</StudentPortalApiContext.Provider>
+  );
+}
+
+/** Reads the student portal API bound to the closest provider. */
+export function useStudentPortalApi(): StudentPortalApi {
+  const api = useContext(StudentPortalApiContext);
+  if (!api) {
+    throw new Error("useStudentPortalApi must be used within a StudentPortalApiProvider");
+  }
+  return api;
+}
+
 /** Composes every application-level provider used by the routes. */
-export function AppProviders({ children, authApi }: { children: ReactNode; authApi?: AuthApi }) {
+export function AppProviders({
+  children,
+  authApi,
+  studentPortalApi,
+}: {
+  children: ReactNode;
+  authApi?: AuthApi;
+  studentPortalApi?: StudentPortalApi;
+}) {
   return (
     <AuthApiProvider api={authApi}>
       <AuthSessionProvider>
-        <GuardianAccessApiProvider>
-          <GuardianSessionProvider>{children}</GuardianSessionProvider>
-        </GuardianAccessApiProvider>
+        <StudentPortalApiProvider api={studentPortalApi}>
+          <GuardianAccessApiProvider>
+            <GuardianSessionProvider>{children}</GuardianSessionProvider>
+          </GuardianAccessApiProvider>
+        </StudentPortalApiProvider>
       </AuthSessionProvider>
     </AuthApiProvider>
   );

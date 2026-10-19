@@ -4,6 +4,14 @@ import type { RouteObject } from "react-router";
 import { RequireRole } from "@/app/guards";
 import { PageHeader } from "@/components/ui";
 import LoginPage from "@/features/auth/LoginPage";
+import {
+  ActivityDetailPage,
+  StudentActivitiesPage,
+  StudentDashboardPage,
+  StudentGradesPage,
+  StudentProfilePage,
+  StudentSubmissionsPage,
+} from "@/features/student/StudentPages";
 import AppLayout from "@/layouts/AppLayout";
 
 function NotFound() {
@@ -13,17 +21,6 @@ function NotFound() {
       <a href="/login">Volver al inicio de sesión</a>
       <a href="/acudientes">Volver al acceso de acudientes</a>
     </div>
-  );
-}
-
-/** Temporary landing of the student role; the real screens arrive in the next wave. */
-function StudentHome() {
-  return (
-    <PageHeader
-      eyebrow="MI ESPACIO"
-      title="Mi espacio"
-      description="Aquí verás el resumen de tu proceso académico."
-    />
   );
 }
 
@@ -38,7 +35,7 @@ function TeacherHome() {
   );
 }
 
-/** Temporary screen for the sections that the next wave replaces with the real pages. */
+/** Temporary screen for the teacher sections that the next wave replaces with the real pages. */
 function PendingScreen() {
   return (
     <PageHeader
@@ -68,8 +65,13 @@ export const routes: RouteObject[] = [
       {
         element: <AppLayout />,
         children: [
-          { path: "/estudiante", Component: StudentHome },
-          { path: "/estudiante/*", Component: PendingScreen },
+          { path: "/estudiante", Component: StudentDashboardPage },
+          { path: "/estudiante/calificaciones", Component: StudentGradesPage },
+          { path: "/estudiante/actividades", Component: StudentActivitiesPage },
+          { path: "/estudiante/actividades/:activityId", Component: ActivityDetailPage },
+          { path: "/estudiante/entregas", Component: StudentSubmissionsPage },
+          { path: "/estudiante/perfil", Component: StudentProfilePage },
+          { path: "/estudiante/*", Component: NotFound },
         ],
       },
     ],
