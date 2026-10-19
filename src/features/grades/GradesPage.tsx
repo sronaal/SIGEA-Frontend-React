@@ -378,7 +378,7 @@ export default function GradesPage() {
                       {students.map((student) => {
                         const raw = grades[student.id] ?? "";
                         const studentError = gradeErrors[student.id];
-                        const numeric = raw.trim() === "" ? null : Number(raw);
+                        const numeric = raw.trim() === "" ? null : toApiGrade(raw);
                         const level = numeric !== null && !studentError ? levelOf(numeric) : null;
                         return (
                           <tr key={student.id}>

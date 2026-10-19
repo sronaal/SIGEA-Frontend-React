@@ -63,12 +63,18 @@ export function initialsOf(nombres: string, apellidos: string): string {
   return initials || "SG";
 }
 
+/** A typed grade with the comma of the local copy normalized to the decimal point of the API. */
+function normalizedGrade(raw: string): string {
+  return raw.trim().replace(",", ".");
+}
+
 /**
  * Validates a grade typed by the professor: between 0.0 and 5.0 with at most one decimal.
- * Returns the error copy, or `null` when the value is valid.
+ * Both the comma and the point are accepted as decimal separators because the copy uses the
+ * comma. Returns the error copy, or `null` when the value is valid.
  */
 export function gradeValidationError(raw: string): string | null {
-  const value = raw.trim();
+  const value = normalizedGrade(raw);
   if (!value) return "Escribe una nota entre 0,0 y 5,0.";
   if (!/^\d+(?:\.\d)?$/.test(value)) return "Usa una sola cifra decimal (por ejemplo, 4,5).";
   const numeric = Number(value);
@@ -78,5 +84,5 @@ export function gradeValidationError(raw: string): string | null {
 
 /** Numeric grade with the single decimal expected by the API. */
 export function toApiGrade(raw: string): number {
-  return Number(Number(raw.trim()).toFixed(1));
+  return Number(Number(normalizedGrade(raw)).toFixed(1));
 }
