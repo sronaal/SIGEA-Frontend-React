@@ -1,67 +1,195 @@
-# SIGEA — Frontend (portal de accedientes)
+# SIGEA Frontend
 
-Aplicación React + TypeScript strict que consume la API REST del backend SIGEA
-(`backend/`, Spring Boot 4.1.1). Hoy expone el **portal de accedientes**:
-identificación del estudiante → código OTP → consulta académica de solo lectura.
+Aplicación web del **Sistema de Gestión y Seguimiento Académico (SIGEA)**, construida con React,
+TypeScript y Vite. Consume la API REST del
+[backend SIGEA](https://github.com/sronaal/SIGEA-Backend-Java) y cubre tres experiencias:
+
+- **Estudiantes:** dashboard, calificaciones, actividades, entregas y perfil.
+- **Profesores:** grupos, asistencia, actividades, revisión de entregas y calificaciones.
+- **Acudientes:** consulta de solo lectura con documento del estudiante y verificación OTP.
+
+El proyecto forma parte del programa Tecnólogo en Análisis y Desarrollo de Software (ADSO) del
+SENA. Todos los datos de demostración son ficticios.
 
 ## Stack
 
-- React 19 + TypeScript 5.7 (`strict`)
-- Vite 8 + Tailwind CSS v4 (tema replicado de `SIGEA_Prototipo/`)
-- react-router 7
-- Vitest 5 + React Testing Library
+| Componente | Versión |
+|---|---|
+| React | 19.2 |
+| TypeScript | 5.9 (`strict`) |
+| Vite | 8.3 |
+| React Router | 7.18 |
+| Tailwind CSS | 4.3 |
+| Vitest + React Testing Library | 5.0 / 16.3 |
+| Iconos | lucide-react |
 
-## Levantar en local
+## Requisitos
+
+- Node.js 22 LTS (Vite 8 requiere `^20.19.0` o `>=22.12.0`).
+- npm 10 o superior.
+- El backend SIGEA corriendo en `http://localhost:8080` con el perfil `local`.
+
+## Inicio rápido
+
+### 1. Variables de entorno
 
 ```bash
-# 1) variables de entorno
-cp .env.example .env        # VITE_API_URL apunta al backend
-
-# 2) dependencias
-npm install
-
-# 3) backend arriba (en otro repo) — perfil local, aplica la semilla V900
-cd ../backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
-
-# 4) frontend
-npm run dev                 # http://localhost:5173
+cp .env.example .env
 ```
 
-El backend valida `FRONTEND_URL` al arrancar: debe coincidir con el origen real
-del frontend o el arranque falla (por diseño, para no dejar el CORS abierto).
+```properties
+VITE_API_URL=http://localhost:8080
+VITE_INSTITUTION_NAME=Institución Educativa Horizonte
+```
 
-## Comandos
+`VITE_INSTITUTION_NAME` es opcional: si no se define, la barra superior muestra `SIGEA`.
 
-| Comando             | Qué hace                                        |
-| ------------------- | ----------------------------------------------- |
-| `npm run dev`       | servidor de desarrollo                          |
-| `npm run build`     | bundle de producción en `dist/`                |
-| `npm run preview`   | sirve el bundle de producción                   |
-| `npm run lint`      | ESLint                                          |
-| `npm run typecheck` | `tsc --noEmit`                                  |
-| `npm test`          | Vitest (modo watch: `vitest`)                   |
+### 2. Backend
 
-## Flujo del portal
+En el repositorio del backend:
 
-1. **Identificar** — tipo y número de documento del estudiante. La respuesta del
-   backend es genérica: no revela si el documento existe.
-2. **Código** — código de 6 dígitos recibido por el medio de contacto registrado.
-   `401` = código inválido, expirado o ya usado; `429` = bloqueo por 5 intentos.
-3. **Perfil** — métricas reales del estudiante vinculado: promedio (con estado
-   `PROVISIONAL` / `DEFINITIVE` / `UNAVAILABLE`), asistencia y actividades.
-   Si el backend no trae un dato, la pantalla lo dice; no inventa cifras.
+```bash
+docker compose up -d --wait
+cp .env.example .env
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
 
-El token de sesión vive **solo en memoria** (nunca en `localStorage` ni
-`sessionStorage`). "Cerrar consulta" lo descarta.
+El perfil `local` carga la semilla de demostración. El backend exige un único `FRONTEND_URL`
+(`http://localhost:5173` por defecto) y falla al arrancar si falta o es inválido. Si el valor no
+coincide con el origen real, el navegador rechaza las peticiones por CORS.
+
+### 3. Frontend
+
+```bash
+npm install
+npm run dev
+```
+
+Aplicación: <http://localhost:5173>
+
+## Cuentas de demostración
+
+Contraseña para todas: `Sigea#2026`
+
+| Correo | Rol |
+|---|---|
+| `andres.rodriguez@sigea.local` | Profesor (8A y 8B) |
+| `laura.gomez@sigea.local` | Profesora (Ciencias e Informática) |
+| `carlos.ramirez@sigea.local` | Profesor (Inglés y Sociales) |
+| `juan.perez@sigea.local` | Estudiante (8A) |
+| `ana.restrepo@sigea.local` | Estudiante (8A) |
+| `luis.rios@sigea.local` | Estudiante (8B) |
+| `sofia.lopera@sigea.local` | Estudiante (9A) |
+
+El login redirige según el rol: `/estudiante` o `/profesor`.
+
+### Portal de acudientes
+
+1. Abrir <http://localhost:5173/acudientes>.
+2. Usar `TARJETA_IDENTIDAD` y el documento `1000000001`.
+3. Con el perfil `local` del backend, el OTP se escribe en `backend/target/local-otp/`.
+
+La respuesta de identificación es genérica: no revela si el documento existe.
+
+## Rutas
+
+| Ruta | Acceso | Pantalla |
+|---|---|---|
+| `/login` | Público | Inicio de sesión |
+| `/acudientes` | Público | Identificación, OTP y perfil del acudiente |
+| `/estudiante` | Estudiante | Dashboard académico |
+| `/estudiante/calificaciones` | Estudiante | Calificaciones por asignatura |
+| `/estudiante/actividades` | Estudiante | Actividades publicadas |
+| `/estudiante/actividades/:id` | Estudiante | Detalle y entrega |
+| `/estudiante/entregas` | Estudiante | Historial de entregas |
+| `/estudiante/perfil` | Estudiante | Perfil y matrícula |
+| `/profesor` | Profesor | Dashboard del docente |
+| `/profesor/grupos` | Profesor | Grupos y estudiantes |
+| `/profesor/asistencia` | Profesor | Registro de asistencia |
+| `/profesor/actividades` | Profesor | Crear y publicar actividades |
+| `/profesor/actividades/:id/entregas` | Profesor | Revisar y calificar entregas |
+| `/profesor/calificaciones` | Profesor | Evaluaciones y notas |
+
+Las rutas privadas están protegidas por rol; una sesión de estudiante no puede abrir el panel del
+profesor y viceversa.
+
+## Comportamiento de datos
+
+- **Todo dato académico viene de la API**: no hay mocks, fixtures ni valores de relleno en las
+  pantallas.
+- Si la API no devuelve una métrica, la interfaz muestra `—`, `No disponible` o el estado
+  `UNAVAILABLE`; nunca inventa un cero.
+- Las actividades y evaluaciones se recargan desde la API después de crear o publicar.
+- La asistencia sólo muestra estados registrados; un estudiante sin registro queda **sin marcar**
+  y no se envía como `PRESENTE` por defecto.
+- Al guardar una entrega, una nota o una asistencia, la pantalla se refresca con los datos
+  persistidos.
+
+## Sesión
+
+Los JWT de estudiante, profesor y acudiente viven **solo en memoria**. No se escriben en
+`localStorage`, `sessionStorage`, cookies ni en la URL. Al recargar la página la sesión se pierde y
+hay que volver a iniciar sesión; es una decisión de seguridad deliberada.
+
+## Scripts
+
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo con HMR |
+| `npm run build` | Bundle de producción en `dist/` |
+| `npm run preview` | Sirve el bundle de producción |
+| `npm run typecheck` | `tsc --noEmit` para app y configuración |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest en modo CI (`vitest run`) |
+| `npm run test:watch` | Vitest en modo watch |
+
+## Pruebas
+
+```bash
+npm test
+npm run typecheck
+npm run build
+```
+
+Estado actual: **90 tests en 11 archivos**, typecheck y build verdes. Los tests usan jsdom y
+React Testing Library; no requieren backend ni base de datos.
 
 ## Estructura
 
-```
+```text
 src/
-  app/          router y providers
-  components/   piezas de UI (Button, FormField, StatusBadge)
-  context/      GuardianSessionContext (token en memoria)
-  features/     guardian-access/ (IdentifyStep, OtpStep, ProfileView)
-  services/     http.ts y guardianAccess.ts
-  types/        tipos espejo del contrato del backend
+├── app/                 Router, guards y providers
+├── components/          UI reutilizable y estados de feedback
+├── context/             Sesiones en memoria (estudiante/profesor y acudiente)
+├── features/
+│   ├── auth/            Login
+│   ├── student/         Portal del estudiante
+│   ├── teacher/         Panel del profesor
+│   ├── grades/          Evaluaciones y calificaciones
+│   └── guardian-access/ Identificación, OTP y perfil del acudiente
+├── layouts/             Shell con navegación por rol
+├── lib/                 Formateo de fechas, notas y porcentajes
+├── services/            Cliente HTTP y servicios por dominio
+└── types/               Tipos espejo del contrato del backend
 ```
+
+## Variables de entorno
+
+| Variable | Obligatoria | Uso |
+|---|---|---|
+| `VITE_API_URL` | Sí | Base URL del backend (`http://localhost:8080`) |
+| `VITE_INSTITUTION_NAME` | No | Nombre visible en la barra superior |
+
+Vite expone estas variables en el bundle: no deben contener secretos. El archivo `.env` está
+ignorado por Git.
+
+## Build de producción
+
+```bash
+npm run build
+npm run preview
+```
+
+El resultado queda en `dist/` y puede servirse con cualquier servidor estático. Recordá configurar
+`VITE_API_URL` con la URL pública del backend antes de compilar y `FRONTEND_URL` en el backend con
+el origen del frontend desplegado.
