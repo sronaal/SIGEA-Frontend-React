@@ -10,6 +10,7 @@ import type {
   StudentSubmissions,
   SubmissionPayload,
 } from "@/types/academic";
+import type { FileMetadata } from "@/types/files";
 
 /** Base path of the student portal capability in the SIGEA API. */
 export const STUDENT_PORTAL_BASE_PATH = "/api/v1";
@@ -37,6 +38,26 @@ export interface StudentPortalApi {
     payload: SubmissionPayload,
     accessToken: string,
   ): Promise<StudentSubmission>;
+  /** Replaces the content and/or the file reference of an existing, still open delivery. */
+  resubmit(
+    submissionId: number,
+    payload: SubmissionPayload,
+    accessToken: string,
+  ): Promise<StudentSubmission>;
+  /** Attaches several files to a delivery in a single request. */
+  uploadFiles(
+    submissionId: number,
+    files: File[],
+    accessToken: string,
+  ): Promise<FileMetadata[]>;
+  getFiles(submissionId: number, accessToken: string): Promise<FileMetadata[]>;
+  deleteFile(submissionId: number, fileId: number, accessToken: string): Promise<void>;
+  /** Raw bytes of an attachment, fetched with the session token. */
+  getFileBlob(
+    fileId: number,
+    accessToken: string,
+    kind?: "preview" | "download",
+  ): Promise<Blob>;
 }
 
 /** Creates a client bound to a given HTTP client (or to the default one). */
@@ -64,6 +85,40 @@ export function createStudentPortalApi(client: HttpClient = httpClient): Student
       client.post<StudentSubmission>(
         `${STUDENT_PORTAL_BASE_PATH}/activities/${activityId}/submissions`,
         payload,
+        accessToken,
+      ),
+    resubmit: (submissionId, payload, accessToken) =>
+      client.patch<StudentSubmission>(
+        `${STUDENT_PORTAL_BASE_PATH}/students/me/deliveries/${submissionId}`,
+        payload,
+        accessToken,
+      ),
+    uploadFiles: (submissionId, files, accessToken) => {
+      const formData = new FormData();
+      // The backend reads every part named `file`, so one request carries the whole batch.
+      for (const file of files) {
+        formData.append("file", file);
+      }
+      return client.postForm<FileMetadata[]>(
+        `${STUDENT_PORTAL_BASE_PATH}/students/me/deliveries/${submissionId}/files`,
+        formData,
+        accessToken,
+      );
+    },
+    getFileBlob: (fileId, accessToken, kind = "preview") =>
+      client.blob(
+        kind === "preview" ? `/api/v1/files/${fileId}/preview` : `/api/v1/files/${fileId}`,
+        accessToken,
+      ),
+    getFiles: (submissionId, accessToken) =>
+      client.get<FileMetadata[]>(
+        `${STUDENT_PORTAL_BASE_PATH}/students/me/deliveries/${submissionId}/files`,
+        accessToken,
+      ),
+    deleteFile: (submissionId, fileId, accessToken) =>
+      client.delete(
+        `${STUDENT_PORTAL_BASE_PATH}/students/me/deliveries/${submissionId}/files/${fileId}`,
+        undefined,
         accessToken,
       ),
   };

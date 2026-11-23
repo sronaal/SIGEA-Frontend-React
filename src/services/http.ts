@@ -49,9 +49,13 @@ export class ApiError extends Error {
 export interface HttpClient {
   get<T>(path: string, accessToken?: string): Promise<T>;
   post<T>(path: string, body: unknown, accessToken?: string): Promise<T>;
+  /** Sends a `multipart/form-data` body. The browser sets the boundary, so no `Content-Type` is sent. */
+  postForm<T>(path: string, body: FormData, accessToken?: string): Promise<T>;
   patch<T>(path: string, body: unknown, accessToken?: string): Promise<T>;
   put<T>(path: string, body: unknown, accessToken?: string): Promise<T>;
   delete<T>(path: string, body?: unknown, accessToken?: string): Promise<T>;
+  /** Fetches a binary payload (a file preview or a download) with the session token. */
+  blob(path: string, accessToken?: string): Promise<Blob>;
 }
 
 function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
@@ -85,9 +89,11 @@ async function toApiError(response: Response): Promise<ApiError> {
   );
 }
 
-function buildHeaders(accessToken?: string): Headers {
+function buildHeaders(accessToken?: string, json = true): Headers {
   const headers = new Headers({ Accept: "application/json" });
-  headers.set("Content-Type", "application/json");
+  if (json) {
+    headers.set("Content-Type", "application/json");
+  }
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
@@ -106,13 +112,16 @@ export function createHttpClient(baseUrl: string): HttpClient {
     method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
     body: unknown,
     accessToken?: string,
+    isForm = false,
   ): Promise<T> => {
     let response: Response;
     try {
       response = await fetch(url(path), {
         method,
-        headers: buildHeaders(accessToken),
-        ...(method !== "GET" && body !== undefined ? { body: JSON.stringify(body) } : {}),
+        headers: buildHeaders(accessToken, !isForm),
+        ...(method !== "GET" && body !== undefined
+          ? { body: isForm ? (body as FormData) : JSON.stringify(body) }
+          : {}),
       });
     } catch {
       throw new ApiError(0, "NETWORK_ERROR", "The API is unreachable.");
@@ -137,11 +146,26 @@ export function createHttpClient(baseUrl: string): HttpClient {
   return {
     get: <T>(path: string, accessToken?: string) => send<T>(path, "GET", undefined, accessToken),
     post: <T>(path: string, body: unknown, accessToken?: string) => send<T>(path, "POST", body, accessToken),
+    postForm: <T>(path: string, body: FormData, accessToken?: string) =>
+      send<T>(path, "POST", body, accessToken, true),
     patch: <T>(path: string, body: unknown, accessToken?: string) =>
       send<T>(path, "PATCH", body, accessToken),
     put: <T>(path: string, body: unknown, accessToken?: string) => send<T>(path, "PUT", body, accessToken),
     delete: <T>(path: string, body?: unknown, accessToken?: string) =>
       send<T>(path, "DELETE", body, accessToken),
+    blob: async (path: string, accessToken?: string): Promise<Blob> => {
+      let response: Response;
+      try {
+        // The preview endpoint needs the bearer token, so the file can never be a plain <img src>.
+        response = await fetch(url(path), { headers: buildHeaders(accessToken, false) });
+      } catch {
+        throw new ApiError(0, "NETWORK_ERROR", "The API is unreachable.");
+      }
+      if (!response.ok) {
+        throw await toApiError(response);
+      }
+      return response.blob();
+    },
   };
 }
 

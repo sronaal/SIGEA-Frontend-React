@@ -145,6 +145,7 @@ const ACTIVITIES: StudentActivities = {
       status: "PENDIENTE",
       grade: null,
       feedback: null,
+      submissionId: null,
     },
     {
       id: 8,
@@ -155,6 +156,7 @@ const ACTIVITIES: StudentActivities = {
       status: "CALIFICADA",
       grade: 4.0,
       feedback: "Buena argumentación.",
+      submissionId: 2,
     },
     {
       id: 9,
@@ -165,6 +167,7 @@ const ACTIVITIES: StudentActivities = {
       status: "ENTREGADA",
       grade: null,
       feedback: null,
+      submissionId: 3,
     },
   ],
 };
@@ -214,6 +217,19 @@ function createApi(overrides: Partial<StudentPortalApi> = {}): StudentPortalApi 
     getSubmissions: vi.fn(async () => SUBMISSIONS),
     getAttendance: vi.fn(async () => ({ percentage: 83, records: [] })),
     submitActivity: vi.fn(async () => SUBMISSION),
+    uploadFiles: vi.fn(async () => [
+      {
+        id: 1,
+        nombreOriginal: "informe.pdf",
+        mimeType: "application/pdf",
+        tamanoBytes: 1024,
+        creadoEn: "2026-05-20T10:00:00",
+      },
+    ]),
+    getFiles: vi.fn(async () => []),
+    deleteFile: vi.fn(async () => undefined),
+    getFileBlob: vi.fn(async () => new Blob(["contenido"], { type: "application/pdf" })),
+    resubmit: vi.fn(async () => SUBMISSION),
     ...overrides,
   };
 }

@@ -52,6 +52,15 @@ export function todayAsIsoDate(): string {
   return `${today.getFullYear()}-${month}-${day}`;
 }
 
+/**
+ * True while the due date has not passed yet, using a local calendar-day comparison so the
+ * delivery window matches what the student sees on screen.
+ */
+export function isBeforeDueDate(dueDate: string | null | undefined): boolean {
+  if (!dueDate) return false;
+  return dueDate >= todayAsIsoDate();
+}
+
 /** Message of the `ApiError` contract, or a fallback for unexpected failures. */
 export function errorMessage(caught: unknown, fallback: string): string {
   return caught instanceof ApiError ? caught.message : fallback;

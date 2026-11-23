@@ -114,6 +114,8 @@ export interface StudentActivity {
   status: SubmissionStatus;
   grade: number | null;
   feedback: string | null;
+  /** Delivery of the student for this activity, or `null` while it is still pending. */
+  submissionId: number | null;
 }
 
 /** Body of `GET /api/v1/students/me/activities` (only published activities). */

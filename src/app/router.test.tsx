@@ -95,6 +95,28 @@ function createStudentPortalApi(): StudentPortalApi {
       grade: null,
       feedback: null,
     })),
+    uploadFiles: vi.fn(async () => [
+      {
+        id: 1,
+        nombreOriginal: "informe.pdf",
+        mimeType: "application/pdf",
+        tamanoBytes: 1024,
+        creadoEn: "2026-05-20T10:00:00",
+      },
+    ]),
+    getFiles: vi.fn(async () => []),
+    deleteFile: vi.fn(async () => undefined),
+    getFileBlob: vi.fn(async () => new Blob(["contenido"], { type: "application/pdf" })),
+    resubmit: vi.fn(async (submissionId: number) => ({
+      id: submissionId,
+      activityId: 7,
+      title: "Actividad",
+      subject: "Matemáticas",
+      submittedAt: "2026-05-20T10:00:00",
+      status: "ENTREGADA" as const,
+      grade: null,
+      feedback: null,
+    })),
   };
 }
 

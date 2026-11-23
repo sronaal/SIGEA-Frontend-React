@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { gradeValidationError, toApiGrade } from "@/lib/format";
+import { gradeValidationError, isBeforeDueDate, toApiGrade } from "@/lib/format";
 
 describe("grade validation", () => {
   it("accepts a grade typed with a comma", () => {
@@ -33,5 +33,26 @@ describe("grade API conversion", () => {
 
   it("keeps a point unchanged", () => {
     expect(toApiGrade("4.5")).toBe(4.5);
+  });
+});
+
+describe("delivery window", () => {
+  it("treats today as still inside the window", () => {
+    const today = new Date();
+    const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    expect(isBeforeDueDate(iso)).toBe(true);
+  });
+
+  it("closes the window once the due date has passed", () => {
+    expect(isBeforeDueDate("2000-01-01")).toBe(false);
+  });
+
+  it("keeps the window open for a future due date", () => {
+    expect(isBeforeDueDate("2999-12-31")).toBe(true);
+  });
+
+  it("has no window without a due date", () => {
+    expect(isBeforeDueDate(null)).toBe(false);
+    expect(isBeforeDueDate(undefined)).toBe(false);
   });
 });

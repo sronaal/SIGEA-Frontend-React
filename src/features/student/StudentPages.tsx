@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { FileBoard } from "@/components/FileBoard";
 
 import {
   AlertCircle,
@@ -30,6 +31,7 @@ import {
   StudentAvatar,
 } from "@/components/ui";
 import { useAuthSession } from "@/context/AuthSessionContext";
+import { isBeforeDueDate } from "@/lib/format";
 import { ApiError } from "@/services/http";
 import type {
   AverageStatus,
@@ -126,7 +128,6 @@ function formatDateTime(value: string | null | undefined): string {
 function errorMessage(caught: unknown, fallback: string): string {
   return caught instanceof ApiError ? caught.message : fallback;
 }
-
 function initialsOf(nombres: string, apellidos: string): string {
   const initials = `${nombres.trim().charAt(0)}${apellidos.trim().charAt(0)}`.toUpperCase();
   return initials || "SG";
@@ -687,10 +688,15 @@ export function ActivityDetailPage() {
   }
 
   const delivered = submitted ?? null;
+  // The activity carries the id of its delivery, so the attachments and the resubmission survive
+  // a reload instead of depending on the state of this session only.
+  const submissionId = submitted?.id ?? activity.submissionId;
   const status = delivered?.status ?? activity.status;
   const grade = delivered?.grade ?? activity.grade;
   const feedback = delivered?.feedback ?? activity.feedback;
-  const canSubmit = activity.status === "PENDIENTE" && delivered === null;
+  const canSubmit = activity.status === "PENDIENTE" && submissionId === null;
+  const canResubmit =
+    submissionId !== null && status !== "CALIFICADA" && isBeforeDueDate(activity.dueDate);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -712,7 +718,9 @@ export function ActivityDetailPage() {
 
     setBusy(true);
     try {
-      const submission = await api.submitActivity(activity.id, payload, accessToken);
+      const submission = canSubmit
+        ? await api.submitActivity(activity.id, payload, accessToken)
+        : await api.resubmit(submissionId as number, payload, accessToken);
       setSubmitted(submission);
       setContenido("");
       setArchivoRef("");
@@ -760,11 +768,18 @@ export function ActivityDetailPage() {
         <aside className="card submission-panel">
           <h2>Tu entrega</h2>
 
-          {canSubmit ? (
+          {canSubmit || canResubmit ? (
             <form onSubmit={handleSubmit} noValidate>
               {submitError && (
                 <p className="field-error" role="alert">
                   {submitError}
+                </p>
+              )}
+
+              {!canSubmit && (
+                <p className="resubmit-hint">
+                  Aún puedes corregir tu entrega: se reemplaza mientras no esté calificada y antes
+                  de la fecha límite.
                 </p>
               )}
 
@@ -796,18 +811,23 @@ export function ActivityDetailPage() {
               </FormField>
 
               <Button type="submit" disabled={busy}>
-                {busy ? "Enviando…" : "Enviar entrega"} <Send />
+                {busy
+                  ? "Guardando…"
+                  : canSubmit
+                    ? "Enviar entrega"
+                    : "Guardar cambios"}{" "}
+                <Send />
               </Button>
             </form>
-          ) : delivered !== null || activity.status !== "PENDIENTE" ? (
+          ) : submissionId !== null || activity.status !== "PENDIENTE" ? (
             <div className="submitted-state">
               <CheckCircle2 />
               <strong>
                 {status === "CALIFICADA" ? "Actividad calificada" : "Actividad entregada"}
               </strong>
               <p>
-                {delivered
-                  ? `Entrega registrada el ${formatDateTime(delivered.submittedAt)}.`
+                {submitted
+                  ? `Entrega registrada el ${formatDateTime(submitted.submittedAt)}.`
                   : "Tu respuesta quedó registrada en el sistema."}
               </p>
               <div>
@@ -825,6 +845,10 @@ export function ActivityDetailPage() {
               {feedback && <blockquote>“{feedback}”</blockquote>}
             </div>
           ) : null}
+
+          {/* The attachment endpoints are keyed by the delivery id, which the activity DTO now
+              carries, so the board survives a reload of the page. */}
+          {submissionId !== null && <FileBoard submissionId={submissionId} />}
         </aside>
       </div>
     </div>
@@ -838,6 +862,7 @@ export function StudentSubmissionsPage() {
   const [data, setData] = useState<StudentSubmissions | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -909,35 +934,56 @@ export function StudentSubmissionsPage() {
               </thead>
               <tbody>
                 {data.submissions.map((submission) => (
-                  <tr key={submission.id}>
-                    <td>
-                      <Link
-                        className="table-link"
-                        to={`/estudiante/actividades/${submission.activityId}`}
-                      >
-                        {submission.title}
-                      </Link>
-                    </td>
-                    <td>{submission.subject}</td>
-                    <td>{formatDateTime(submission.submittedAt)}</td>
-                    <td>
-                      <StatusBadge tone={submissionStatusTone(submission.status)}>
-                        {submissionStatusLabel(submission.status)}
-                      </StatusBadge>
-                    </td>
-                    <td>
-                      {submission.grade === null ? (
-                        <span>—</span>
-                      ) : (
-                        <span className={gradePillClass(submission.grade)}>
-                          {formatGrade(submission.grade)}
-                        </span>
-                      )}
-                    </td>
-                    <td className="observation-cell">
-                      {submission.feedback || "Sin observaciones"}
-                    </td>
-                  </tr>
+                  <Fragment key={submission.id}>
+                    <tr>
+                      <td>
+                        <Link
+                          className="table-link"
+                          to={`/estudiante/actividades/${submission.activityId}`}
+                        >
+                          {submission.title}
+                        </Link>
+                        <button
+                          type="button"
+                          className="table-link table-link--button"
+                          aria-expanded={expandedId === submission.id}
+                          onClick={() =>
+                            setExpandedId((current) =>
+                              current === submission.id ? null : submission.id,
+                            )
+                          }
+                        >
+                          {expandedId === submission.id ? "Ocultar archivos" : "Ver archivos"}
+                        </button>
+                      </td>
+                      <td>{submission.subject}</td>
+                      <td>{formatDateTime(submission.submittedAt)}</td>
+                      <td>
+                        <StatusBadge tone={submissionStatusTone(submission.status)}>
+                          {submissionStatusLabel(submission.status)}
+                        </StatusBadge>
+                      </td>
+                      <td>
+                        {submission.grade === null ? (
+                          <span>—</span>
+                        ) : (
+                          <span className={gradePillClass(submission.grade)}>
+                            {formatGrade(submission.grade)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="observation-cell">
+                        {submission.feedback || "Sin observaciones"}
+                      </td>
+                    </tr>
+                    {expandedId === submission.id && (
+                      <tr className="submission-files-row">
+                        <td colSpan={6}>
+                          <FileBoard submissionId={submission.id} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
