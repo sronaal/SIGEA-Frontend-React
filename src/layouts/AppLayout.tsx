@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
@@ -72,9 +72,18 @@ export default function AppLayout() {
     .sort((left, right) => right.to.length - left.to.length)[0];
   const activeLabel = activeItem?.label ?? (isStudent ? "Mi espacio" : "Espacio docente");
 
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
   return (
     <div className="app-shell">
-      {open && <div className="sidebar-scrim" onClick={() => setOpen(false)} />}
+      {open && <div className="sidebar-scrim" aria-hidden="true" onClick={() => setOpen(false)} />}
 
       <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
         <div className="brand">

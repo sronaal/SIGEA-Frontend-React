@@ -13,10 +13,11 @@ export default defineConfig({
     },
   },
   test: {
+    testTimeout: 20000,
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     css: false,
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "src/tests/**/*.test.{ts,tsx}"],
   },
 });

@@ -1,4 +1,4 @@
-import { Navigate, createBrowserRouter } from "react-router";
+import { Link, Navigate, createBrowserRouter } from "react-router";
 import type { RouteObject } from "react-router";
 
 import { RequireRole } from "@/app/guards";
@@ -24,8 +24,8 @@ function NotFound() {
   return (
     <div className="not-found">
       <h1>Página no encontrada</h1>
-      <a href="/login">Volver al inicio de sesión</a>
-      <a href="/acudientes">Volver al acceso de acudientes</a>
+      <Link to="/login">Volver al inicio de sesión</Link>
+      <Link to="/acudientes">Volver al acceso de acudientes</Link>
     </div>
   );
 }

@@ -11,12 +11,13 @@ export function Button({
   children,
   variant = "primary",
   className = "",
+  type = "button",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "ghost" | "danger";
 }) {
   return (
-    <button className={`btn btn-${variant} ${className}`} {...props}>
+    <button type={type} className={`btn btn-${variant} ${className}`} {...props}>
       {children}
     </button>
   );
@@ -114,7 +115,6 @@ export function FilterDropdown({
 }: SelectHTMLAttributes<HTMLSelectElement> & { label: string; children: ReactNode }) {
   return (
     <label className="filter-select">
-      <span className="sr-only">{label}</span>
       <select aria-label={label} {...props}>
         {children}
       </select>
@@ -156,18 +156,20 @@ export function FormField({
   label,
   hint,
   error,
+  id,
   children,
 }: {
   label: string;
   hint?: string;
   error?: string;
+  id?: string;
   children: ReactNode;
 }) {
   return (
     <label className="form-field">
       <span className="field-label">{label}</span>
       {children}
-      {error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}
+      {error ? <span className="field-error" id={id ? `${id}-error` : undefined}>{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}
     </label>
   );
 }
@@ -184,7 +186,7 @@ export function EmptyState({
   return (
     <div className="empty-state">
       <div className="empty-icon">
-        <Icon />
+        <Icon aria-hidden="true" />
       </div>
       <h3>{title}</h3>
       <p>{description}</p>

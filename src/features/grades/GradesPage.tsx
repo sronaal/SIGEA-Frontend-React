@@ -474,6 +474,7 @@ export default function GradesPage() {
                 )}
                 <div className="table-scroll">
                   <table>
+                    <caption className="sr-only">Calificaciones de la evaluación</caption>
                     <thead>
                       <tr>
                         <th>Estudiante</th>
@@ -489,7 +490,7 @@ export default function GradesPage() {
                         const level = numeric !== null && !studentError ? levelOf(numeric) : null;
                         return (
                           <tr key={student.id}>
-                            <td>
+                            <td data-label="Estudiante">
                               <div className="student-cell">
                                 <StudentAvatar
                                   initials={initialsOf(student.nombres, student.apellidos)}
@@ -499,7 +500,7 @@ export default function GradesPage() {
                                 </strong>
                               </div>
                             </td>
-                            <td>
+                            <td data-label="Nota">
                               <div className={`grade-input ${studentError ? "input-error" : ""}`}>
                                 <input
                                   aria-label={`Calificación de ${student.nombres} ${student.apellidos}`}
@@ -521,7 +522,7 @@ export default function GradesPage() {
                               </div>
                               {studentError && <span className="inline-error">{studentError}</span>}
                             </td>
-                            <td>
+                            <td data-label="Nivel">
                               {level ? (
                                 <StatusBadge tone={level.tone}>{level.label}</StatusBadge>
                               ) : (

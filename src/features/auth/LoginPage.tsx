@@ -87,7 +87,7 @@ export default function LoginPage() {
         </div>
         <div className="login-message">
           <span className="login-kicker">COMUNIDAD EDUCATIVA</span>
-          <h1>Tu proceso académico, claro y siempre a la mano.</h1>
+          <p className="login-message-title">Tu proceso académico, claro y siempre a la mano.</p>
           <p>Un espacio sencillo para aprender, enseñar y acompañar cada avance.</p>
         </div>
         <div className="login-trust">
@@ -116,7 +116,7 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} noValidate>
-            <FormField label="Correo institucional" error={fieldErrors.correo}>
+            <FormField label="Correo institucional" error={fieldErrors.correo} id="login-correo">
               <input
                 type="email"
                 name="correo"
@@ -125,11 +125,12 @@ export default function LoginPage() {
                 placeholder="estudiante@colegio.edu.co"
                 value={correo}
                 aria-invalid={fieldErrors.correo ? true : undefined}
+                aria-describedby={fieldErrors.correo ? "login-correo-error" : undefined}
                 onChange={(event) => setCorreo(event.target.value)}
               />
             </FormField>
 
-            <FormField label="Contraseña" error={fieldErrors.password}>
+            <FormField label="Contraseña" error={fieldErrors.password} id="login-password">
               <div className="password-field">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -139,6 +140,7 @@ export default function LoginPage() {
                   placeholder="Ingresa tu contraseña"
                   value={password}
                   aria-invalid={fieldErrors.password ? true : undefined}
+                  aria-describedby={fieldErrors.password ? "login-password-error" : undefined}
                   onChange={(event) => setPassword(event.target.value)}
                 />
                 <button

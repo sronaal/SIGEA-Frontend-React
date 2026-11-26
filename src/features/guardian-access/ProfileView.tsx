@@ -60,7 +60,7 @@ export default function ProfileView({ profile, onClose }: ProfileViewProps) {
             <span>Consulta temporal · solo lectura</span>
           </div>
         </div>
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant="secondary" onClick={onClose} aria-label="Cerrar consulta">
           <LogOut />
           Cerrar consulta
         </Button>

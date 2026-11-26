@@ -458,6 +458,7 @@ export function StudentGradesPage() {
             </div>
             <div className="table-scroll">
               <table>
+                <caption className="sr-only">Calificaciones de {item.subject}</caption>
                 <thead>
                   <tr>
                     <th>Evaluación</th>
@@ -469,10 +470,10 @@ export function StudentGradesPage() {
                 <tbody>
                   {item.grades.map((grade) => (
                     <tr key={grade.assessmentId}>
-                      <td>{grade.assessment}</td>
-                      <td>{grade.weight}%</td>
-                      <td>{grade.period}</td>
-                      <td>
+                      <td data-label="Evaluación">{grade.assessment}</td>
+                      <td data-label="Ponderación">{grade.weight}%</td>
+                      <td data-label="Período">{grade.period}</td>
+                      <td data-label="Nota">
                         {grade.grade === null ? (
                           <StatusBadge tone="neutral">Pendiente</StatusBadge>
                         ) : (
@@ -922,6 +923,7 @@ export function StudentSubmissionsPage() {
         ) : (
           <div className="table-scroll">
             <table>
+              <caption className="sr-only">Historial de entregas</caption>
               <thead>
                 <tr>
                   <th>Actividad</th>
@@ -936,7 +938,7 @@ export function StudentSubmissionsPage() {
                 {data.submissions.map((submission) => (
                   <Fragment key={submission.id}>
                     <tr>
-                      <td>
+                      <td data-label="Actividad">
                         <Link
                           className="table-link"
                           to={`/estudiante/actividades/${submission.activityId}`}
@@ -956,14 +958,14 @@ export function StudentSubmissionsPage() {
                           {expandedId === submission.id ? "Ocultar archivos" : "Ver archivos"}
                         </button>
                       </td>
-                      <td>{submission.subject}</td>
-                      <td>{formatDateTime(submission.submittedAt)}</td>
-                      <td>
+                      <td data-label="Asignatura">{submission.subject}</td>
+                      <td data-label="Fecha de entrega">{formatDateTime(submission.submittedAt)}</td>
+                      <td data-label="Estado">
                         <StatusBadge tone={submissionStatusTone(submission.status)}>
                           {submissionStatusLabel(submission.status)}
                         </StatusBadge>
                       </td>
-                      <td>
+                      <td data-label="Calificación">
                         {submission.grade === null ? (
                           <span>—</span>
                         ) : (
@@ -972,7 +974,7 @@ export function StudentSubmissionsPage() {
                           </span>
                         )}
                       </td>
-                      <td className="observation-cell">
+                      <td className="observation-cell" data-label="Retroalimentación">
                         {submission.feedback || "Sin observaciones"}
                       </td>
                     </tr>
