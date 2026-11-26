@@ -13,6 +13,8 @@
  * its `UNAVAILABLE` state; the frontend never invents a replacement value.
  */
 
+import type { FileMetadata } from "@/types/files";
+
 /** State of a weighted average (specification §8.2). */
 export type AverageStatus = "DEFINITIVE" | "PROVISIONAL" | "UNAVAILABLE";
 
@@ -232,6 +234,9 @@ export interface AttendancePayload {
   records: TeacherAttendanceRecord[];
 }
 
+/** Pedagogical context of an activity (backend `activities.tipo`): home work or in-class work. */
+export type ActivityType = "TAREA" | "ACTIVIDAD" | "TALLER" | "PROYECTO";
+
 /** Activity as the professor sees it. */
 export interface TeacherActivity {
   id: number;
@@ -239,6 +244,7 @@ export interface TeacherActivity {
   description: string;
   dueDate: string;
   status: ActivityStatus;
+  type: ActivityType;
 }
 
 /** Body of `GET /api/v1/assignments/{id}/activities` (drafts included). */
@@ -253,18 +259,28 @@ export interface ActivityPayload {
   description: string;
   dueDate: string;
   status: ActivityStatus;
+  /** Optional; the backend defaults it to `TAREA`. */
+  type?: ActivityType;
+  weight?: number;
 }
 
-/** Delivery of an activity as the professor sees it. */
+/**
+ * Delivery of an activity as the professor sees it. An enrolled student without a delivery row
+ * appears with `id`, `submittedAt` and `content` in `null` and state `PENDIENTE`.
+ */
 export interface TeacherSubmission {
-  id: number;
+  id: number | null;
   studentId: number;
   studentName: string;
-  submittedAt: string;
-  content: string;
+  submittedAt: string | null;
+  content: string | null;
   status: SubmissionStatus;
   grade: number | null;
   feedback: string | null;
+  files: FileMetadata[];
+  gradedAt: string | null;
+  gradedBy: number | null;
+  gradedByName: string | null;
 }
 
 /** Header of the deliveries list. */
@@ -272,6 +288,7 @@ export interface ActivityHeader {
   id: number;
   title: string;
   dueDate: string;
+  type: ActivityType;
 }
 
 /** Body of `GET /api/v1/activities/{id}/submissions`. */

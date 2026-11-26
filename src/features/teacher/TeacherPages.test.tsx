@@ -102,6 +102,9 @@ function createApi(overrides: Partial<TeacherWorkspaceApi> = {}): TeacherWorkspa
     publishActivity: vi.fn(),
     getSubmissions: vi.fn(),
     gradeSubmission: vi.fn(),
+    getActivityFiles: vi.fn(async () => []),
+    uploadActivityFiles: vi.fn(async () => []),
+    deleteActivityFile: vi.fn(),
     createAssessment: vi.fn(),
     getAssessments: vi.fn(async (assignmentId: number) => ({
       assignmentId,

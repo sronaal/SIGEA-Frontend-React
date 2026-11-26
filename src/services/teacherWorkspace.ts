@@ -3,6 +3,7 @@ import type { HttpClient } from "@/services/http";
 import type {
   ActivityPayload,
   ActivitySubmissions,
+  ActivityType,
   AssessmentGrades,
   AssessmentPayload,
   AssignmentActivities,
@@ -18,6 +19,7 @@ import type {
   TeacherAttendance,
   TeacherSubmission,
 } from "@/types/academic";
+import type { FileMetadata } from "@/types/files";
 
 /** Base path of the teacher workspace capability in the SIGEA API. */
 export const TEACHER_WORKSPACE_BASE_PATH = "/api/v1";
@@ -33,8 +35,12 @@ export interface TeacherWorkspaceApi {
   getStudents(assignmentId: number, accessToken: string): Promise<AssignmentStudents>;
   /** Attendance records of one session of an assignment. */
   getAttendance(assignmentId: number, date: string, accessToken: string): Promise<TeacherAttendance>;
-  /** Every activity of an assignment, drafts included. */
-  getActivities(assignmentId: number, accessToken: string): Promise<AssignmentActivities>;
+  /** Every activity of an assignment, drafts included; optionally narrowed by type. */
+  getActivities(
+    assignmentId: number,
+    accessToken: string,
+    type?: ActivityType,
+  ): Promise<AssignmentActivities>;
   /** Registers (or updates) the attendance of one session. */
   saveAttendance(
     assignmentId: number,
@@ -57,6 +63,16 @@ export interface TeacherWorkspaceApi {
     payload: GradeSubmissionPayload,
     accessToken: string,
   ): Promise<TeacherSubmission>;
+  /** Materials attached to an activity by its professor. */
+  getActivityFiles(activityId: number, accessToken: string): Promise<FileMetadata[]>;
+  /** Stores and attaches one or more materials to an activity. */
+  uploadActivityFiles(
+    activityId: number,
+    files: File[],
+    accessToken: string,
+  ): Promise<FileMetadata[]>;
+  /** Removes one material from an activity. */
+  deleteActivityFile(activityId: number, fileId: number, accessToken: string): Promise<void>;
   /** Creates an assessment of an assignment. */
   createAssessment(
     assignmentId: number,
@@ -89,9 +105,9 @@ export function createTeacherWorkspaceApi(client: HttpClient = httpClient): Teac
         `${TEACHER_WORKSPACE_BASE_PATH}/assignments/${assignmentId}/attendance?date=${encodeURIComponent(date)}`,
         accessToken,
       ),
-    getActivities: (assignmentId, accessToken) =>
+    getActivities: (assignmentId, accessToken, type) =>
       client.get<AssignmentActivities>(
-        `${TEACHER_WORKSPACE_BASE_PATH}/assignments/${assignmentId}/activities`,
+        `${TEACHER_WORKSPACE_BASE_PATH}/assignments/${assignmentId}/activities${type ? `?type=${encodeURIComponent(type)}` : ""}`,
         accessToken,
       ),
     saveAttendance: (assignmentId, payload, accessToken) =>
@@ -121,6 +137,28 @@ export function createTeacherWorkspaceApi(client: HttpClient = httpClient): Teac
       client.patch<TeacherSubmission>(
         `${TEACHER_WORKSPACE_BASE_PATH}/submissions/${submissionId}/grade`,
         payload,
+        accessToken,
+      ),
+    getActivityFiles: (activityId, accessToken) =>
+      client.get<FileMetadata[]>(
+        `${TEACHER_WORKSPACE_BASE_PATH}/activities/${activityId}/files`,
+        accessToken,
+      ),
+    uploadActivityFiles: (activityId, files, accessToken) => {
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append("file", file);
+      }
+      return client.postForm<FileMetadata[]>(
+        `${TEACHER_WORKSPACE_BASE_PATH}/activities/${activityId}/files`,
+        formData,
+        accessToken,
+      );
+    },
+    deleteActivityFile: (activityId, fileId, accessToken) =>
+      client.delete(
+        `${TEACHER_WORKSPACE_BASE_PATH}/activities/${activityId}/files/${fileId}`,
+        undefined,
         accessToken,
       ),
     createAssessment: (assignmentId, payload, accessToken) =>

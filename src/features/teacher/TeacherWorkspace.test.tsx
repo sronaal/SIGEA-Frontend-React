@@ -22,6 +22,7 @@ import type {
   TeacherStudent,
 } from "@/types/academic";
 import type { AuthSession } from "@/types/auth";
+import type { FileMetadata } from "@/types/files";
 
 const TEACHER_SESSION: AuthSession = {
   accessToken: "teacher-token",
@@ -101,12 +102,29 @@ const DRAFT: TeacherActivity = {
   description: "Resuelve los ejercicios propuestos.",
   dueDate: "2026-05-30",
   status: "BORRADOR",
+  type: "TAREA",
 };
 
 const PUBLISHED: TeacherActivity = { ...DRAFT, status: "PUBLICADA" };
 
+const IN_CLASS: TeacherActivity = {
+  ...DRAFT,
+  id: 8,
+  title: "Trabajo en clase",
+  status: "PUBLICADA",
+  type: "ACTIVIDAD",
+};
+
+const ATTACHMENT: FileMetadata = {
+  id: 10,
+  nombreOriginal: "informe.pdf",
+  mimeType: "application/pdf",
+  tamanoBytes: 2048,
+  creadoEn: "2026-05-20T10:00:00",
+};
+
 const SUBMISSIONS: ActivitySubmissions = {
-  activity: { id: 7, title: "Informe de ecosistemas", dueDate: "2026-05-30" },
+  activity: { id: 7, title: "Informe de ecosistemas", dueDate: "2026-05-30", type: "TAREA" },
   submissions: [
     {
       id: 1,
@@ -117,6 +135,48 @@ const SUBMISSIONS: ActivitySubmissions = {
       status: "ENTREGADA",
       grade: null,
       feedback: null,
+      files: [ATTACHMENT],
+      gradedAt: null,
+      gradedBy: null,
+      gradedByName: null,
+    },
+  ],
+};
+
+/** Mariana delivered with an attachment; Juan is enrolled without a delivery row. */
+const SUBMISSIONS_WITH_PENDING: ActivitySubmissions = {
+  activity: SUBMISSIONS.activity,
+  submissions: [
+    SUBMISSIONS.submissions[0]!,
+    {
+      id: null,
+      studentId: 2,
+      studentName: "Juan Pérez",
+      submittedAt: null,
+      content: null,
+      status: "PENDIENTE",
+      grade: null,
+      feedback: null,
+      files: [],
+      gradedAt: null,
+      gradedBy: null,
+      gradedByName: null,
+    },
+  ],
+};
+
+/** A delivery already graded, with its audit of date and author. */
+const GRADED_SUBMISSIONS: ActivitySubmissions = {
+  activity: SUBMISSIONS.activity,
+  submissions: [
+    {
+      ...SUBMISSIONS.submissions[0]!,
+      status: "CALIFICADA",
+      grade: 4.5,
+      feedback: "Buen trabajo",
+      gradedAt: "2026-05-21T09:30:00",
+      gradedBy: 9,
+      gradedByName: "Raúl Docente",
     },
   ],
 };
@@ -140,6 +200,9 @@ function createApi(overrides: Partial<TeacherWorkspaceApi> = {}): TeacherWorkspa
       grade: 4.5,
       feedback: "Buen trabajo",
     })),
+    getActivityFiles: vi.fn(async () => [] as FileMetadata[]),
+    uploadActivityFiles: vi.fn(async () => [] as FileMetadata[]),
+    deleteActivityFile: vi.fn(),
     createAssessment: vi.fn(),
     getAssessments: vi.fn(async (assignmentId: number) => ({
       assignmentId,
@@ -248,7 +311,7 @@ describe("TeacherActivitiesPage", () => {
 
     expect(await screen.findByText("Taller de ecuaciones")).toBeInTheDocument();
     expect(screen.getByText("Borrador")).toBeInTheDocument();
-    expect(api.getActivities).toHaveBeenCalledWith(1, "teacher-token");
+    expect(api.getActivities).toHaveBeenCalledWith(1, "teacher-token", undefined);
   });
 
   it("starts with an empty list and refreshes it after creating a draft", async () => {
@@ -281,6 +344,7 @@ describe("TeacherActivitiesPage", () => {
           description: "Resuelve los ejercicios propuestos.",
           dueDate: "2026-05-30",
           status: "BORRADOR",
+          type: "TAREA",
         },
         "teacher-token",
       ),
@@ -343,6 +407,101 @@ describe("TeacherActivitiesPage", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("The due date is required.");
   });
+
+  it("shows the pedagogical type of each activity as a badge", async () => {
+    const api = createApi({
+      getActivities: vi.fn(async () => ({
+        assignmentId: 1,
+        activities: [DRAFT, IN_CLASS],
+      })),
+    });
+    renderScreen(<TeacherActivitiesPage />, api, { path: "/profesor/actividades" });
+
+    expect(await screen.findByText("Taller de ecuaciones")).toBeInTheDocument();
+    // The selector also renders the same words as options, so scope to the badges.
+    expect(document.querySelector(".type-badge.type-tarea")).toHaveTextContent("Tarea");
+    expect(document.querySelector(".type-badge.type-actividad")).toHaveTextContent("Actividad");
+  });
+
+  it("filters the activities by type through the API", async () => {
+    const user = userEvent.setup();
+    const api = createApi({
+      getActivities: vi.fn(async (assignmentId: number, _token: string, type?: string) => ({
+        assignmentId,
+        activities: type === "ACTIVIDAD" ? [IN_CLASS] : [DRAFT, IN_CLASS],
+      })),
+    });
+    renderScreen(<TeacherActivitiesPage />, api, { path: "/profesor/actividades" });
+
+    expect(await screen.findByText("Taller de ecuaciones")).toBeInTheDocument();
+    await user.selectOptions(
+      screen.getByLabelText(/filtrar las actividades por tipo/i),
+      "ACTIVIDAD",
+    );
+
+    await waitFor(() =>
+      expect(api.getActivities).toHaveBeenCalledWith(1, "teacher-token", "ACTIVIDAD"),
+    );
+    expect(await screen.findByText("Trabajo en clase")).toBeInTheDocument();
+    expect(screen.queryByText("Taller de ecuaciones")).not.toBeInTheDocument();
+  });
+
+  it("asks the backend for the chosen type when the professor creates an activity", async () => {
+    const user = userEvent.setup();
+    const api = createApi({
+      createActivity: vi.fn(async () => ({ ...DRAFT, type: "ACTIVIDAD" as const })),
+    });
+    renderScreen(<TeacherActivitiesPage />, api, { path: "/profesor/actividades" });
+
+    await screen.findByText(/sin actividades/i);
+    await user.click(screen.getByRole("button", { name: /crear actividad/i }));
+
+    await user.selectOptions(screen.getByLabelText(/tipo de la actividad/i), "ACTIVIDAD");
+    await user.type(screen.getByLabelText(/título/i), "Trabajo en clase");
+    await user.type(screen.getByLabelText(/descripción e instrucciones/i), "En parejas");
+    fireEvent.change(screen.getByLabelText(/fecha límite/i), {
+      target: { value: "2026-05-31" },
+    });
+    await user.click(screen.getByRole("button", { name: /guardar borrador/i }));
+
+    await waitFor(() =>
+      expect(api.createActivity).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ title: "Trabajo en clase", type: "ACTIVIDAD" }),
+        "teacher-token",
+      ),
+    );
+  });
+
+  it("lists, previews and deletes the materials of an activity", async () => {
+    const user = userEvent.setup();
+    const material: FileMetadata = {
+      id: 30,
+      nombreOriginal: "apuntes.pdf",
+      mimeType: "application/pdf",
+      tamanoBytes: 1024,
+      creadoEn: "2026-05-20T10:00:00",
+    };
+    const deleteActivityFile = vi.fn(async () => undefined);
+    const api = createApi({
+      getActivities: vi.fn(async () => ({ assignmentId: 1, activities: [DRAFT] })),
+      getActivityFiles: vi.fn(async () => [material]),
+      deleteActivityFile,
+    });
+    renderScreen(<TeacherActivitiesPage />, api, { path: "/profesor/actividades" });
+
+    await user.click(await screen.findByRole("button", { name: /materiales/i }));
+
+    expect(await screen.findByText("apuntes.pdf")).toBeInTheDocument();
+    expect(api.getActivityFiles).toHaveBeenCalledWith(7, "teacher-token");
+
+    await user.click(screen.getByRole("button", { name: /eliminar apuntes\.pdf/i }));
+
+    await waitFor(() =>
+      expect(deleteActivityFile).toHaveBeenCalledWith(7, 30, "teacher-token"),
+    );
+    expect(await screen.findByText(/sin materiales/i)).toBeInTheDocument();
+  });
 });
 
 describe("SubmissionsGradingPage", () => {
@@ -358,8 +517,9 @@ describe("SubmissionsGradingPage", () => {
     expect(
       await screen.findByRole("heading", { name: /entregas: informe de ecosistemas/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Mariana Gómez")).toBeInTheDocument();
-    expect(screen.getByText("Entregada")).toBeInTheDocument();
+    // The split view repeats the student and the state in the list and in the detail panel.
+    expect(screen.getAllByText("Mariana Gómez").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Entregada").length).toBeGreaterThanOrEqual(1);
     expect(api.getSubmissions).toHaveBeenCalledWith(7, "teacher-token");
   });
 
@@ -436,5 +596,77 @@ describe("SubmissionsGradingPage", () => {
     renderScreen(<SubmissionsGradingPage />, api, options);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("The activity was not found.");
+  });
+
+  it("shows every enrolled student, including those without a delivery", async () => {
+    const user = userEvent.setup();
+    const api = createApi({ getSubmissions: vi.fn(async () => SUBMISSIONS_WITH_PENDING) });
+    renderScreen(<SubmissionsGradingPage />, api, options);
+
+    expect(await screen.findByLabelText(/ver entrega de juan pérez/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/calificar a mariana gómez/i)).toBeInTheDocument();
+    expect(screen.getByText("0 de 2 calificadas")).toBeInTheDocument();
+
+    // Opening Juan (pending) shows no delivery and no grade form.
+    await user.click(screen.getByLabelText(/ver entrega de juan pérez/i));
+    expect(await screen.findByText(/este estudiante aún no ha entregado/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/nota \(0,0 a 5,0\)/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the audit of a graded delivery: date, author and grade", async () => {
+    const api = createApi({ getSubmissions: vi.fn(async () => GRADED_SUBMISSIONS) });
+    renderScreen(<SubmissionsGradingPage />, api, options);
+
+    const audit = await screen.findByRole("note");
+    expect(audit).toHaveTextContent(/calificada el/i);
+    expect(audit).toHaveTextContent(/21 de may de 2026/i);
+    expect(audit).toHaveTextContent("Raúl Docente");
+    expect(audit).toHaveTextContent("4,5");
+    expect(screen.getByText("1 de 1 calificadas")).toBeInTheDocument();
+  });
+
+  it("filters the list by state", async () => {
+    const user = userEvent.setup();
+    const api = createApi({ getSubmissions: vi.fn(async () => SUBMISSIONS_WITH_PENDING) });
+    renderScreen(<SubmissionsGradingPage />, api, options);
+
+    await screen.findByLabelText(/ver entrega de juan pérez/i);
+    await user.selectOptions(
+      screen.getByLabelText(/filtrar las entregas por estado/i),
+      "PENDIENTE",
+    );
+
+    expect(await screen.findByLabelText(/ver entrega de juan pérez/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/calificar a mariana gómez/i)).not.toBeInTheDocument();
+  });
+
+  it("saves the grade and moves to the next delivery without leaving the screen", async () => {
+    const user = userEvent.setup();
+    const api = createApi({
+      getSubmissions: vi.fn(async () => SUBMISSIONS_WITH_PENDING),
+      gradeSubmission: vi.fn(async (submissionId: number) => ({
+        ...SUBMISSIONS.submissions[0]!,
+        id: submissionId,
+        status: "CALIFICADA" as const,
+        grade: 4.5,
+        feedback: "Buen trabajo",
+      })),
+    });
+    renderScreen(<SubmissionsGradingPage />, api, options);
+
+    await user.click(await screen.findByLabelText(/calificar a mariana gómez/i));
+    await user.type(screen.getByLabelText(/nota \(0,0 a 5,0\)/i), "4.5");
+    await user.click(screen.getByRole("button", { name: /guardar y siguiente/i }));
+
+    await waitFor(() =>
+      expect(api.gradeSubmission).toHaveBeenCalledWith(
+        1,
+        { grade: 4.5 },
+        "teacher-token",
+      ),
+    );
+    // The focus advances to the next visible delivery (Juan, still pending).
+    expect(await screen.findByText(/este estudiante aún no ha entregado/i)).toBeInTheDocument();
+    expect(screen.queryByText(/calificación guardada/i)).not.toBeInTheDocument();
   });
 });

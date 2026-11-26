@@ -226,6 +226,42 @@ tbody tr:hover { background: #fafbfe; }
 .groups-layout{display:grid;grid-template-columns:minmax(min(100%,15rem),19rem) minmax(0,1fr);gap:1rem}.group-list{display:flex;flex-direction:column;gap:.7rem}.group-option{width:100%;display:grid;grid-template-columns:auto 1fr auto;gap:.7rem;align-items:center;padding:.9rem;text-align:left;cursor:pointer;background:white}.group-option.active{border-color:var(--primary);background:#f5f8fd;box-shadow:0 0 0 .12rem rgba(100,127,196,.12)}.group-option>div:nth-child(2){display:flex;flex-direction:column}.group-option>div:nth-child(2) span{color:var(--muted);font-size: 0.75rem}.group-option>svg{width:1rem;color:var(--muted)}.group-detail{padding:1.3rem;min-width:0}.group-detail-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start}.group-detail-head h2{margin:0}.group-detail-head p{color:var(--muted)}.group-actions{display:flex;gap:.5rem;flex-wrap:wrap}
 .teacher-activities-list{display:grid;gap:.75rem}.teacher-activity-row{padding:1rem;display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:1rem}.activity-file-icon{width:2.8rem;height:2.8rem;border-radius:.8rem;display:grid;place-items:center;color:var(--primary-dark);background:var(--blue)}.activity-file-icon svg{width:1.2rem}.teacher-activity-main{display:flex;justify-content:space-between;align-items:center;gap:1rem}.teacher-activity-main>div:first-child span{color:var(--muted);font-size: 0.75rem}.teacher-activity-main h2{font-size:.9rem;margin:.25rem 0 0}.activity-stats{display:flex;gap:1.5rem}.activity-stats span{display:flex;flex-direction:column;color:var(--muted);font-size: 0.75rem}.activity-stats strong{color:var(--text)}.row-actions{display:flex;align-items:center;gap:.5rem}.pending-count{min-width:1.2rem;height:1.2rem;padding:0 .2rem;border-radius:1rem;display:grid;place-items:center;background:var(--yellow);color:var(--warning);font-size: 0.75rem}
 .submitted-content{background:var(--bg);border-radius:var(--radius-md);padding:1rem;margin-bottom:1.2rem}.submitted-content h3{font-size:.85rem;margin-top:0}.submitted-content p{color:var(--muted);line-height:1.6}.submitted-content a{display:flex;align-items:center;gap:.5rem;color:var(--primary-dark);font-weight:700}.submitted-content a svg{width:1rem}.submitted-content a span{color:var(--muted);font-size: 0.75rem;font-weight:500}
+
+/* F3: activity type badges, materials panel and the split grading session. */
+.type-badge{display:inline-block;padding:.15rem .55rem;border-radius:1rem;font-size:.7rem;font-weight:700;letter-spacing:.02em;text-transform:uppercase;margin-top:.35rem}
+.type-tarea{background:#e8f0fe;color:#1d4ed8}
+.type-actividad{background:#e6f6ec;color:#15803d}
+.type-taller{background:#fef3e2;color:#b45309}
+.type-proyecto{background:#f3e8ff;color:#7e22ce}
+.muted{color:var(--muted);font-size:.85rem;display:flex;align-items:center;gap:.4rem}
+.grading-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+.grading-toolbar-badges{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.grading-split{display:grid;grid-template-columns:minmax(16rem,22rem) minmax(0,1fr);gap:1rem;align-items:start}
+.grading-list{padding:.6rem;display:flex;flex-direction:column;gap:.4rem;max-height:70vh;overflow-y:auto}
+.grading-list-item{display:flex;align-items:center;gap:.6rem;padding:.6rem .7rem;border:1px solid transparent;border-radius:var(--radius-sm);background:transparent;text-align:left;cursor:pointer;color:var(--text);width:100%}
+.grading-list-item:hover{background:var(--bg)}
+.grading-list-item.is-active{border-color:var(--primary-dark);background:var(--blue)}
+.grading-list-text{display:flex;flex-direction:column;min-width:0;flex:1}
+.grading-list-text strong{font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grading-list-text small{color:var(--muted);font-size:.72rem}
+.grading-detail{padding:1.5rem;display:flex;flex-direction:column;gap:1rem;min-height:20rem}
+.grading-detail-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.grading-detail-heading h2{font-size:1.05rem;margin:0}
+.grading-detail-heading p{color:var(--muted);font-size:.8rem;margin:.2rem 0 0}
+.grading-audit{display:flex;gap:1.5rem;flex-wrap:wrap;background:var(--bg);border-radius:var(--radius-md);padding:.8rem 1rem}
+.grading-audit p{margin:0;font-size:.82rem;color:var(--muted)}
+.grading-audit strong{color:var(--text)}
+.grading-files h3{font-size:.85rem;margin:0 0 .5rem}
+.materials-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.5rem}
+.materials-list-item{display:flex;align-items:center;gap:.7rem;border:1px solid var(--border);border-radius:var(--radius-sm);padding:.6rem .8rem}
+.materials-list-item>svg{width:1.1rem;color:var(--primary-dark);flex-shrink:0}
+.materials-list-item>div{display:flex;flex-direction:column;min-width:0;flex:1}
+.materials-list-item strong{font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.materials-list-item small{color:var(--muted);font-size:.72rem}
+@media (max-width: 900px) {
+  .grading-split{grid-template-columns:1fr}
+  .grading-list{max-height:16rem}
+}
 .evaluation-form{display:grid;gap:1rem}
 
 /* Family access */
