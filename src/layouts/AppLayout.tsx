@@ -83,9 +83,12 @@ export default function AppLayout() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">
+        Saltar al contenido
+      </a>
       {open && <div className="sidebar-scrim" aria-hidden="true" onClick={() => setOpen(false)} />}
 
-      <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
+      <aside id="primary-navigation" className={`sidebar ${open ? "sidebar-open" : ""}`}>
         <div className="brand">
           <div className="brand-mark">
             <GraduationCap />
@@ -128,7 +131,14 @@ export default function AppLayout() {
       <div className="app-content">
         <header className="topbar">
           <div className="topbar-title">
-            <Button variant="ghost" className="menu-button" onClick={() => setOpen(true)} aria-label="Abrir menú">
+            <Button
+              variant="ghost"
+              className="menu-button"
+              onClick={() => setOpen(true)}
+              aria-label="Abrir menú"
+              aria-expanded={open}
+              aria-controls="primary-navigation"
+            >
               <Menu />
             </Button>
             <div>
@@ -145,7 +155,7 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <main>
+        <main id="main-content">
           <Outlet />
         </main>
       </div>
