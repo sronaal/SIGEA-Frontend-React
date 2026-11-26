@@ -187,6 +187,7 @@ export function TeacherDashboardPage() {
             </div>
             <div className="table-scroll">
               <table>
+                <caption className="sr-only">Asignaciones del docente</caption>
                 <thead>
                   <tr>
                     <th>Asignatura</th>
@@ -200,14 +201,14 @@ export function TeacherDashboardPage() {
                 <tbody>
                   {assignments.map((assignment) => (
                     <tr key={assignment.id}>
-                      <td>
+                      <td data-label="Asignatura">
                         <strong>{assignment.subject}</strong>
                       </td>
-                      <td>{assignment.group}</td>
-                      <td>{assignment.grade}°</td>
-                      <td>{assignment.academicYear}</td>
-                      <td>{assignment.period ?? "—"}</td>
-                      <td>{assignment.studentCount}</td>
+                      <td data-label="Grupo">{assignment.group}</td>
+                      <td data-label="Grado">{assignment.grade}°</td>
+                      <td data-label="Año">{assignment.academicYear}</td>
+                      <td data-label="Período">{assignment.period ?? "—"}</td>
+                      <td data-label="Estudiantes">{assignment.studentCount}</td>
                     </tr>
                   ))}
                 </tbody>
