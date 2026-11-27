@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { AuthSessionProvider } from "@/context/AuthSessionContext";
 import { GuardianSessionProvider } from "@/context/GuardianSessionContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import type { AuthApi } from "@/services/auth";
 import { authApi as defaultAuthApi } from "@/services/auth";
 import { guardianAccessApi } from "@/services/guardianAccess";
@@ -129,16 +130,18 @@ export function AppProviders({
   teacherWorkspaceApi?: TeacherWorkspaceApi;
 }) {
   return (
-    <AuthApiProvider api={authApi}>
-      <AuthSessionProvider>
-        <StudentPortalApiProvider api={studentPortalApi}>
-          <TeacherWorkspaceApiProvider api={teacherWorkspaceApi}>
-            <GuardianAccessApiProvider>
-              <GuardianSessionProvider>{children}</GuardianSessionProvider>
-            </GuardianAccessApiProvider>
-          </TeacherWorkspaceApiProvider>
-        </StudentPortalApiProvider>
-      </AuthSessionProvider>
-    </AuthApiProvider>
+    <LanguageProvider>
+      <AuthApiProvider api={authApi}>
+        <AuthSessionProvider>
+          <StudentPortalApiProvider api={studentPortalApi}>
+            <TeacherWorkspaceApiProvider api={teacherWorkspaceApi}>
+              <GuardianAccessApiProvider>
+                <GuardianSessionProvider>{children}</GuardianSessionProvider>
+              </GuardianAccessApiProvider>
+            </TeacherWorkspaceApiProvider>
+          </StudentPortalApiProvider>
+        </AuthSessionProvider>
+      </AuthApiProvider>
+    </LanguageProvider>
   );
 }

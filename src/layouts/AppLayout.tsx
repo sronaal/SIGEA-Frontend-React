@@ -20,6 +20,7 @@ import { NavLink, Outlet, useLocation } from "react-router";
 
 import { Button } from "@/components/ui";
 import { useAuthSession } from "@/context/AuthSessionContext";
+import { LanguageToggle } from "@/context/LanguageContext";
 import { roleLabel } from "@/types/auth";
 
 interface NavItem {
@@ -147,6 +148,7 @@ export default function AppLayout() {
             </div>
           </div>
           <div className="topbar-actions">
+            <LanguageToggle />
             <button type="button" className="icon-button" aria-label="Notificaciones">
               <Bell />
               <span className="notification-dot" />

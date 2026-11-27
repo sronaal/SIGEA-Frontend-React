@@ -64,6 +64,9 @@ a { color: inherit; text-decoration: none; }
 .topbar-title span { font-size: 0.75rem; color: var(--muted); }
 .topbar-title strong { font-size: 1rem; }
 .topbar-actions { display: flex; align-items: center; gap: 0.8rem; }
+.language-toggle { min-height: 2.35rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--primary-dark); font: inherit; font-size: 0.78rem; font-weight: 800; cursor: pointer; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+.language-toggle:hover { background: var(--bg); border-color: var(--primary); }
+.language-toggle:active { transform: translateY(1px); }
 .icon-button { position: relative; border: 1px solid var(--border); background: white; width: 2.5rem; height: 2.5rem; border-radius: 50%; display: grid; place-items: center; color: var(--muted); cursor: pointer; }
 .icon-button svg { width: 1.15rem; }
 .notification-dot { position: absolute; width: 0.45rem; height: 0.45rem; border-radius: 50%; right: 0.45rem; top: 0.45rem; background: var(--danger); border: 2px solid white; }
@@ -383,4 +386,12 @@ tbody tr:hover { background: #fafbfe; }
 }
 @media (prefers-contrast: more) {
   :root { --muted: #5a6577; --border: #c9d1de; }
+}
+
+.portal-toolbar { width: min(100%, 31rem); display: flex; justify-content: flex-end; margin-bottom: .75rem; }
+.parent-header-actions { display: flex; align-items: center; gap: .65rem; }
+
+@media (max-width: 580px) {
+  .parent-header-actions .btn { padding-inline: .7rem; }
+  .language-toggle { min-height: 2.75rem; }
 }

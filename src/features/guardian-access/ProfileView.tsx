@@ -1,6 +1,7 @@
 import { GraduationCap, LogOut } from "lucide-react";
 
 import { Button, StatusBadge } from "@/components/ui";
+import { LanguageToggle } from "@/context/LanguageContext";
 import {
   attendanceStatusLabel,
   averageStatusLabel,
@@ -60,10 +61,13 @@ export default function ProfileView({ profile, onClose }: ProfileViewProps) {
             <span>Consulta temporal · solo lectura</span>
           </div>
         </div>
-        <Button variant="secondary" onClick={onClose} aria-label="Cerrar consulta">
-          <LogOut />
-          Cerrar consulta
-        </Button>
+        <div className="parent-header-actions">
+          <LanguageToggle />
+          <Button variant="secondary" onClick={onClose} aria-label="Cerrar consulta">
+            <LogOut />
+            Cerrar consulta
+          </Button>
+        </div>
       </header>
       <main className="parent-content">
         <div className="demo-notice" role="note">

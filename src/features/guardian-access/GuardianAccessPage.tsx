@@ -4,6 +4,7 @@ import { CalendarCheck, GraduationCap } from "lucide-react";
 
 import { useGuardianAccessApi } from "@/app/providers";
 import { useGuardianSession } from "@/context/GuardianSessionContext";
+import { LanguageToggle } from "@/context/LanguageContext";
 import IdentifyStep from "@/features/guardian-access/IdentifyStep";
 import OtpStep from "@/features/guardian-access/OtpStep";
 import ProfileView from "@/features/guardian-access/ProfileView";
@@ -131,6 +132,7 @@ export default function GuardianAccessPage() {
 
   return (
     <div className="portal-page">
+      <div className="portal-toolbar"><LanguageToggle /></div>
       <div className="portal-brand">
         <div className="brand-mark">
           <GraduationCap />

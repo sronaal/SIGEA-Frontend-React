@@ -7,6 +7,7 @@ import { Link, Navigate, useNavigate } from "react-router";
 import { useAuthApi } from "@/app/providers";
 import { Button, FormField } from "@/components/ui";
 import { useAuthSession } from "@/context/AuthSessionContext";
+import { LanguageToggle } from "@/context/LanguageContext";
 import { ApiError } from "@/services/http";
 import { roleHomePath } from "@/types/auth";
 
@@ -98,6 +99,7 @@ export default function LoginPage() {
 
       <main className="login-main">
         <div className="login-card">
+          <div className="login-language"><LanguageToggle /></div>
           <div className="mobile-login-brand">
             <div className="brand-mark">
               <GraduationCap />

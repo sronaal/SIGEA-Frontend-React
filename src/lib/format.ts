@@ -1,22 +1,9 @@
 import { ApiError } from "@/services/http";
-
-const DATE_FORMATTER = new Intl.DateTimeFormat("es-CO", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
-
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("es-CO", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
+import { getCurrentLocale } from "@/lib/locale";
 
 /** Formats a single decimal grade the way the institution writes it (`4,5`). */
 export function formatGrade(value: number | null): string {
-  return value === null ? "—" : value.toFixed(1).replace(".", ",");
+  return value === null ? "—" : new Intl.NumberFormat(getCurrentLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
 }
 
 /** Formats a percentage; a missing value is an em dash, never an invented number. */
@@ -35,13 +22,13 @@ export function parseLocalDate(value: string): Date | null {
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   const parsed = parseLocalDate(value);
-  return parsed ? DATE_FORMATTER.format(parsed) : "—";
+  return parsed ? new Intl.DateTimeFormat(getCurrentLocale(), { day: "numeric", month: "short", year: "numeric" }).format(parsed) : "—";
 }
 
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? "—" : DATE_TIME_FORMATTER.format(parsed);
+  return Number.isNaN(parsed.getTime()) ? "—" : new Intl.DateTimeFormat(getCurrentLocale(), { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }).format(parsed);
 }
 
 /** Today as the `yyyy-MM-dd` value required by the date inputs of the API. */

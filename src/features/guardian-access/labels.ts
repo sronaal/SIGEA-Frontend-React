@@ -1,4 +1,5 @@
 import { ApiError } from "@/services/http";
+import { getCurrentLanguage, getCurrentLocale } from "@/lib/locale";
 import type {
   AverageStatus,
   AttendanceStatus,
@@ -17,18 +18,22 @@ export const DOCUMENT_TYPE_OPTIONS: ReadonlyArray<{ value: DocumentType; label: 
 /** Human readable label of a document type. */
 export function documentTypeLabel(value: DocumentType | string): string {
   const known = DOCUMENT_TYPE_OPTIONS.find((option) => option.value === value);
-  return known ? known.label : value;
+  if (!known) return value;
+  if (getCurrentLanguage() === "en") {
+    return { TARJETA_IDENTIDAD: "Identity card", REGISTRO_CIVIL: "Birth certificate", CEDULA_CIUDADANIA: "National ID" }[value as DocumentType];
+  }
+  return known.label;
 }
 
 /** Human readable label of the general average status. */
 export function averageStatusLabel(status: AverageStatus): string {
   switch (status) {
     case "DEFINITIVE":
-      return "Definitivo";
+      return getCurrentLanguage() === "en" ? "Final" : "Definitivo";
     case "PROVISIONAL":
       return "Provisional";
     case "UNAVAILABLE":
-      return "No disponible";
+      return getCurrentLanguage() === "en" ? "Unavailable" : "No disponible";
   }
 }
 
@@ -36,9 +41,9 @@ export function averageStatusLabel(status: AverageStatus): string {
 export function attendanceStatusLabel(status: AttendanceStatus): string {
   switch (status) {
     case "AVAILABLE":
-      return "Disponible";
+      return getCurrentLanguage() === "en" ? "Available" : "Disponible";
     case "UNAVAILABLE":
-      return "No disponible";
+      return getCurrentLanguage() === "en" ? "Unavailable" : "No disponible";
   }
 }
 
@@ -46,37 +51,18 @@ export function attendanceStatusLabel(status: AttendanceStatus): string {
 export function submissionStatusLabel(status: SubmissionStatus): string {
   switch (status) {
     case "PENDIENTE":
-      return "Pendiente";
+      return getCurrentLanguage() === "en" ? "Pending" : "Pendiente";
     case "ENTREGADA":
-      return "Entregada";
+      return getCurrentLanguage() === "en" ? "Submitted" : "Entregada";
     case "CALIFICADA":
-      return "Calificada";
+      return getCurrentLanguage() === "en" ? "Graded" : "Calificada";
   }
 }
 
 /** Short Spanish month names, kept explicit so the rendering never depends on the ICU data. */
-const MONTH_NAMES = [
-  "ene",
-  "feb",
-  "mar",
-  "abr",
-  "may",
-  "jun",
-  "jul",
-  "ago",
-  "sep",
-  "oct",
-  "nov",
-  "dic",
-] as const;
-
-function pad(value: number): string {
-  return value.toString().padStart(2, "0");
-}
-
 /** Formats a general average with exactly one decimal, using the Colombian convention. */
 export function formatAverage(value: number): string {
-  return value.toFixed(1).replace(".", ",");
+  return new Intl.NumberFormat(getCurrentLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
 }
 
 /** Formats an attendance percentage. */
@@ -91,15 +77,14 @@ export function formatPercentage(value: number): string {
 export function formatLocalDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-").map((part) => Number.parseInt(part, 10));
   if (!year || !month || !day || month < 1 || month > 12) return isoDate;
-  return `${day} ${MONTH_NAMES[month - 1]} ${year}`;
+  return new Intl.DateTimeFormat(getCurrentLocale(), { day: "numeric", month: "short", year: "numeric" }).format(new Date(year, month - 1, day));
 }
 
 /** Formats an ISO instant (session expiration) for humans, in the local time zone. */
 export function formatDateTime(isoInstant: string): string {
   const parsed = new Date(isoInstant);
   if (Number.isNaN(parsed.getTime())) return isoInstant;
-  const month = MONTH_NAMES[parsed.getMonth()] ?? "";
-  return `${parsed.getDate()} ${month} ${parsed.getFullYear()}, ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+  return new Intl.DateTimeFormat(getCurrentLocale(), { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }).format(parsed);
 }
 
 /** One line summary of the enrollment, or `null` when the student has no active enrollment. */
@@ -111,7 +96,7 @@ export function enrollmentSummary(enrollment: EnrollmentView): string | null {
     parts.push(`${enrollment.grade}°`);
   }
   if (enrollment.period !== null) {
-    parts.push(`Periodo ${enrollment.period}`);
+    parts.push(`${getCurrentLanguage() === "en" ? "Term" : "Periodo"} ${enrollment.period}`);
   }
   if (enrollment.academicYear !== null) {
     parts.push(String(enrollment.academicYear));
